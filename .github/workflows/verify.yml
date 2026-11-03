@@ -21,8 +21,10 @@ jobs:
         run: |
           node --check docs/core.js
           node --check docs/app.js
+          node --check docs/private-client.js
+          node --check docs/private.js
       - name: Contratti dati e passaggi consegne
-        run: node --test tests/core.test.cjs
+        run: node --test tests/*.test.cjs
       - name: Importatore e conservazione storico
         run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Risorse della demo e assenza di report operativi
@@ -51,7 +53,15 @@ jobs:
         env:
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/001_private_imports.sql
+      - name: Apply one-time owner activation
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/owner_activation.sql
       - name: Verify row-level access and revocation
         env:
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/database_permissions.sql
+      - name: Verify activation code boundaries
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/owner_activation.sql

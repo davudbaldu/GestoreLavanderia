@@ -16,3 +16,9 @@ for ext in ("*.sqlite", "*.sqlite3", "*.db", "*.xls", "*.xlsx"):
     assert not list(ROOT.rglob(ext)), f"File operativo o database nel repository: {ext}"
 assert not list((ROOT/"docs").rglob("*.csv")), "La demo pubblica non deve contenere CSV operativi."
 print("Risorse presenti; nessun report operativo o database nel repository.")
+
+Resources().feed((ROOT/"docs/riservato.html").read_text(encoding="utf-8"))
+for path in (ROOT/"docs").glob("*.js"):
+    source = path.read_text(encoding="utf-8")
+    assert "sb_secret_" not in source, f"Chiave segreta nel client: {path.name}"
+print("Risorse private presenti; nessuna chiave segreta nel client.")

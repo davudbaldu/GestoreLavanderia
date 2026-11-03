@@ -74,3 +74,11 @@ Vedi [architettura del pilota](architecture.md).
 ## Database privato
 
 È predisposto lo [schema PostgreSQL/Supabase](database/README.md) con accesso riservato, versioni dei report e controlli automatici dei permessi. L'attivazione del progetto e il caricamento richiedono il collegamento al servizio; nessun dato operativo è presente nel repository.
+
+## Area riservata
+
+L'interfaccia di consultazione è in `docs/riservato.html`. Usa Supabase Auth e le policy del database per leggere report, anagrafiche, tag e movimenti. La configurazione frontend contiene solo l'URL del progetto e la chiave pubblicabile. Le sessioni restano in memoria e nessuna chiave segreta è inclusa.
+
+Il proprietario abilita il primo account con un codice personale, valido una sola volta e con scadenza. La verifica dell'email è obbligatoria. Il codice non è nel repository; nel database è conservato solo il suo hash. La sola registrazione non concede accesso ai dati.
+
+Gli originali importati e le segnalazioni risiedono nel database privato e non vengono distribuiti con il sito. La demo in `docs/index.html` rimane separata dai dati operativi.
