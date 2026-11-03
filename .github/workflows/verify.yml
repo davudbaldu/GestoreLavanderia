@@ -1,0 +1,29 @@
+name: Verifica pilota
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Sintassi JavaScript
+        run: |
+          node --check docs/core.js
+          node --check docs/app.js
+      - name: Contratti dati e passaggi consegne
+        run: node --test tests/core.test.cjs
+      - name: Importatore e conservazione storico
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Risorse della demo e assenza di report operativi
+        run: python tools/check_project.py

@@ -1,0 +1,20 @@
+# Operational data stays outside this repository.
+*.csv
+*.xls
+*.xlsx
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.sqlite3-*
+.env
+.env.*
+!.env.example
+/private/
+/data/
+/imports/
+/Report NewPod Emmaus/
+__pycache__/
+*.py[cod]
+node_modules/
+.DS_Store

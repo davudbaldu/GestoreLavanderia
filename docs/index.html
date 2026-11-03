@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#163d3b">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Gestore Lavanderia · Pilota</title>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+<script src="./core.js" defer></script>
+<script src="./app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Vai al contenuto</a>
+<aside class="sidebar" aria-label="Navigazione principale">
+<a class="brand" href="#panoramica"><span class="brand-mark" aria-hidden="true">g<span>l</span></span><span>gestore<span class="brand-sub">LAVANDERIA</span></span></a>
+<div class="workspace"><span class="workspace-dot"></span><div>Spazio dimostrativo<small>Prima versione del gestionale</small></div></div>
+<nav id="navigation">
+<a href="#panoramica" data-page="panoramica"><span aria-hidden="true">◫</span>Panoramica</a>
+<a href="#persone" data-page="persone"><span aria-hidden="true">♧</span>Persone e dotazioni</a>
+<a href="#capi" data-page="capi"><span aria-hidden="true">▱</span>Capi e tag</a>
+<a href="#movimenti" data-page="movimenti"><span aria-hidden="true">⇄</span>Movimenti</a>
+<a href="#consegne" data-page="consegne"><span aria-hidden="true">▣</span>Consegne e documenti</a>
+<a href="#importazioni" data-page="importazioni"><span aria-hidden="true">↥</span>Importazioni CSV</a>
+</nav>
+<div class="sidebar-bottom"><span class="avatar">DE</span><div>Direzione<small>Vista operativa demo</small></div><span class="live-dot" aria-hidden="true"></span></div>
+</aside>
+<div class="shell">
+<header class="topbar"><div class="breadcrumb">Lavanderia <span>/</span> <strong id="crumb">Panoramica</strong></div><div class="topbar-right"><span class="demo-pill">DEMO</span><span id="today"></span></div></header>
+<div class="demo-note"><span class="demo-note-dot"></span><span><strong>Dati dimostrativi.</strong> Le modifiche alla demo restano su questo browser. I CSV scelti vengono analizzati in memoria, senza invio a un server.</span></div>
+<main id="content" tabindex="-1"></main>
+<footer>Gestore Lavanderia <span>Versione pilota · interfaccia e verifica importazioni</span></footer>
+</div>
+<dialog id="delivery-dialog" aria-labelledby="delivery-dialog-title">
+<form id="delivery-form">
+<div class="dialog-heading"><div><span class="eyebrow">PREPARAZIONE</span><h2 id="delivery-dialog-title">Nuova distinta demo</h2></div><button type="button" class="icon-button" data-close-dialog aria-label="Chiudi">×</button></div>
+<label>Destinazione<input value="Struttura Demo · Sede A" readonly></label>
+<div class="form-grid"><label>Origine<select name="origin"><option value="interno">Laboratorio interno</option><option value="terzista">Terzista demo</option></select></label><label>Data consegna<input name="date" type="date" required></label></div>
+<div class="form-grid"><label>Articolo<select name="article"><option value="Biancheria ospiti">Biancheria ospiti</option><option value="Divise">Divise</option><option value="Teli viso">Teli viso</option><option value="Lenzuola">Lenzuola</option><option value="Federe">Federe</option></select></label><label>Quantità<input name="quantity" type="number" min="1" max="100000" step="1" required value="1"></label></div>
+<label>Unità<select name="unit"><option value="pezzi">Pezzi</option><option value="roll">Roll</option><option value="kg">Kg</option></select></label>
+<p class="hint">Questa distinta è dimostrativa e non costituisce un DDT valido.</p>
+<div class="dialog-actions"><button type="button" class="button secondary" data-close-dialog>Annulla</button><button type="submit" class="button primary">Crea distinta</button></div>
+</form>
+</dialog>
+<dialog id="detail-dialog" aria-labelledby="detail-title"><div id="detail-content"></div></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
