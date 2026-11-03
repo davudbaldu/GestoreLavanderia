@@ -70,3 +70,7 @@ La demo non include ancora autenticazione applicativa, database condiviso, emiss
 Prima di attivare dati reali per più utenti servono accessi e permessi verificati, database privato, backup, ripristino e collegamento alle postazioni di lettura. GitHub Pages serve la demo statica; il servizio applicativo richiede hosting separato.
 
 Vedi [architettura del pilota](architecture.md).
+
+## Database privato
+
+È predisposto lo [schema PostgreSQL/Supabase](database/README.md) con accesso riservato, versioni dei report e controlli automatici dei permessi. L'attivazione del progetto e il caricamento richiedono il collegamento al servizio; nessun dato operativo è presente nel repository.

@@ -27,3 +27,31 @@ jobs:
         run: python -m unittest discover -s tests -p "test_*.py" -v
       - name: Risorse della demo e assenza di report operativi
         run: python tools/check_project.py
+  database-permissions:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-ci-fixture-only
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Supabase Auth fixture
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/database_bootstrap.sql
+      - name: Apply private schema
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/001_private_imports.sql
+      - name: Verify row-level access and revocation
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/database_permissions.sql
