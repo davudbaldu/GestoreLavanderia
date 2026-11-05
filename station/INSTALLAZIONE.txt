@@ -1,0 +1,36 @@
+GESTORE LAVANDERIA - VERSIONE DI COLLAUDO WINDOWS
+
+Sporco.exe: PC del tunnel. Pulito.exe: PC di ciascun armadio.
+
+Richiede Windows 10/11 a 64 bit per questa prima compilazione.
+
+1. Estrarre lo ZIP e aprire l'eseguibile su un PC Windows.
+2. Accedere con l'account personale abilitato al gestionale.
+3. Scegliere la propria postazione e la struttura da lavorare.
+4. Premere "Installa su questo PC e avvia con Windows" per copiare
+   il programma nella cartella personale e abilitarlo all'accesso Windows.
+5. Per ricordare l'accesso, selezionare la relativa opzione di Windows:
+   viene conservata solo una sessione cifrata con DPAPI, mai la password.
+
+Questa versione prova il collegamento al gestionale e le letture inserite
+manualmente. NON include ancora i driver delle antenne, delle centraline
+né delle stampantine. NON sostituisce il software di produzione esistente.
+L'avvio della schermata avviene all'accesso dell'utente Windows, non prima
+della schermata di login. Il lavoro in produzione richiede il collaudo hardware
+e credenziali limitate alla postazione, da predisporre in una fase successiva.
+
+Le letture accodate restano sul PC anche dopo un'interruzione o un riavvio.
+Sul pulito non assegnare il capo a una casella fino alla risposta del server.
+La coda non costituisce un sistema di sorting funzionante senza collegamento.
+
+Dati e coda: %LOCALAPPDATA%\GestoreLavanderia\sporco oppure pulito.
+Programma installato: %LOCALAPPDATA%\Programs\GestoreLavanderia.
+Per rimuovere solo l'avvio automatico eseguire Sporco.exe --disable-startup
+oppure Pulito.exe --disable-startup. La coda e gli audit non vengono cancellati.
+
+Se non conosci i modelli dei dispositivi, premi "Rileva lettori e stampanti"
+anche prima del login. Il report viene mostrato localmente e può essere salvato
+sul PC. Non vengono letti i lavori di stampa, le password o i documenti,
+non vengono effettuate scansioni di rete e non avviene alcun invio automatico.
+Le connessioni elencate sono solo quelle già aperte dai programmi legacy
+riconosciuti. Un lettore Ethernet può richiedere ulteriori verifiche sul posto.

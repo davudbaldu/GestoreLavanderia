@@ -23,6 +23,10 @@ jobs:
           node --check docs/app.js
           node --check docs/private-client.js
           node --check docs/private.js
+          node --check docs/operations.js
+          node --check docs/install.js
+          node --check docs/catalogue.js
+          node --check docs/rfid.js
       - name: Contratti dati e passaggi consegne
         run: node --test tests/*.test.cjs
       - name: Importatore e conservazione storico
@@ -65,3 +69,29 @@ jobs:
         env:
           POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/owner_activation.sql
+      - name: Apply operational preparations
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/operations_preparations.sql
+      - name: Verify operational history, transitions and access
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/operations_permissions.sql
+      - name: Apply catalogue and audited location corrections
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/catalogue_quality.sql
+          docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/catalogue_search_projection.sql
+      - name: Verify separation, reports, corrections and original preservation
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: cat tests/catalogue_quality.sql database/seed_emmaus_locations.sql tests/catalogue_quality_after_seed.sql | docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1
+      - name: Apply native station session schema
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < database/rfid_sessions.sql
+      - name: Verify station audit, deduplication, sorting and closure
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: docker exec -i "$POSTGRES_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < tests/rfid_sessions.sql

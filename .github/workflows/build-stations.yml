@@ -1,0 +1,55 @@
+name: Build Windows stations
+on:
+  push:
+    branches: [codex/stations-windows]
+    paths:
+      - 'station/**'
+      - 'tools/build_station_config.py'
+      - 'docs/backend-config.js'
+      - '.github/workflows/build-stations.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        include:
+          - kind: sporco
+            name: Sporco
+          - kind: pulito
+            name: Pulito
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit tests and public-only connection config
+        run: |
+          python -m unittest discover -s tests -p "test_*.py"
+          python tools/build_station_config.py --output build/station-backend.json
+      - name: Install pinned packager
+        run: python -m pip install -r station/build-requirements.txt
+      - name: Build native executable
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --paths station --name ${{ matrix.name }} --add-data "build/station-backend.json;." station/${{ matrix.kind }}.py
+      - name: Verify packaged app, durable queue and Windows DPAPI
+        shell: pwsh
+        run: |
+          $stationReport = Join-Path $env:RUNNER_TEMP "${{ matrix.name }}-self-test.json"
+          $stationProcess = Start-Process -FilePath "dist/${{ matrix.name }}.exe" -ArgumentList "--self-test --report `"$stationReport`"" -PassThru
+          if (-not $stationProcess.WaitForExit(90000)) { $stationProcess.Kill(); throw "Packaged self-test timed out" }
+          if ($stationProcess.ExitCode -ne 0) { throw "Packaged self-test failed" }
+          $stationResult = Get-Content -Raw $stationReport | ConvertFrom-Json
+          if ($stationResult.kind -ne '${{ matrix.kind }}' -or $stationResult.queue -ne 'ok' -or $stationResult.dpapi -ne 'ok' -or $stationResult.diagnostics -ne 'ok' -or $stationResult.hardware_connected -or $stationResult.gui_toolkit -ne 'ok') { throw "Unexpected packaged self-test result" }
+          Copy-Item station/INSTALLAZIONE.txt dist/INSTALLAZIONE.txt
+          Copy-Item $stationReport dist/self-test.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-Windows-collaudo
+          path: |
+            dist/${{ matrix.name }}.exe
+            dist/INSTALLAZIONE.txt
+            dist/self-test.json
+          retention-days: 14

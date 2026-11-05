@@ -6,35 +6,50 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#163d3b">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src https://dggunlnrkpqescejogro.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
-<title>Archivio riservato · Gestore Lavanderia</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; manifest-src 'self'; connect-src https://dggunlnrkpqescejogro.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<title>Area riservata · Gestore Lavanderia</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./theme.css">
 <link rel="stylesheet" href="./private.css">
+<link rel="stylesheet" href="./archive.css">
 <script src="./backend-config.js" defer></script>
 <script src="./private-client.js" defer></script>
+<script src="./operations.js" defer></script>
+<script src="./catalogue.js" defer></script>
+<script src="./rfid.js" defer></script>
 <script src="./private.js" defer></script>
+<script src="./install.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#private-content">Vai al contenuto</a>
 <aside class="sidebar">
 <a class="brand" href="./riservato.html"><span class="brand-mark" aria-hidden="true">g<span>l</span></span><span>gestore<span class="brand-sub">LAVANDERIA</span></span></a>
-<div class="workspace"><span class="workspace-dot"></span><div>Archivio riservato<small>Dati importati da NewPod</small></div></div>
-<nav id="private-nav" aria-label="Navigazione archivio" hidden>
+<div class="workspace"><span class="workspace-dot"></span><div>Spazio operativo<small>Archivi e preparazione consegne</small></div></div>
+<nav id="private-nav" aria-label="Navigazione gestionale" hidden>
 <a href="#" data-section="panoramica"><span aria-hidden="true">◫</span>Panoramica</a>
-<a href="#" data-section="persone"><span aria-hidden="true">♧</span>Persone e dotazioni</a>
-<a href="#" data-section="tag"><span aria-hidden="true">▱</span>Capi e tag</a>
-<a href="#" data-section="movimenti"><span aria-hidden="true">⇄</span>Movimenti</a>
-<a href="#" data-section="report"><span aria-hidden="true">↥</span>Report e verifiche</a>
+<a href="#" data-section="ospiti"><span aria-hidden="true">♧</span>Ospiti e capi personali</a>
+<a href="#" data-section="operatori"><span aria-hidden="true">▱</span>Operatori e divise</a>
+<a href="#" data-section="qualita"><span aria-hidden="true">✓</span>Qualità dati</a>
+<a href="#" data-section="letture"><span aria-hidden="true">⇄</span>Letture sporco e pulito</a>
+<a href="#" data-section="consegne"><span aria-hidden="true">▣</span>Consegne e preparazione</a>
+<a href="#" data-section="flusso"><span aria-hidden="true">↳</span>Flusso lavanderia</a>
+<a href="#" data-section="report"><span aria-hidden="true">↥</span>Report importati</a>
 </nav>
 <div class="sidebar-bottom"><span class="avatar">GL</span><div id="private-account">Accesso personale<small>Consultazione protetta</small></div></div>
 </aside>
 <div class="shell">
-<header class="topbar"><div class="breadcrumb">Lavanderia <span>/</span> <strong id="private-crumb">Archivio riservato</strong></div><div class="topbar-right"><span class="tag good">Riservato</span><button id="logout" class="button small secondary" hidden>Esci</button></div></header>
+<header class="topbar"><div class="breadcrumb">Lavanderia <span>/</span> <strong id="private-crumb">Archivio riservato</strong></div><div class="topbar-right"><button id="install-app" class="button small secondary" hidden>Installa app</button><span class="tag good">Riservato</span><button id="logout" class="button small secondary" hidden>Esci</button></div></header>
+<p id="connection-notice" class="notice connection-notice" role="status" hidden>Connessione assente. Per consultare e salvare i dati condivisi serve il collegamento al server.</p>
 <main id="private-content" tabindex="-1"><p class="hint">Preparazione dell’accesso…</p></main>
-<footer>Gestore Lavanderia <span>Archivio importato · consultazione dei dati originali</span></footer>
+<footer>Gestore Lavanderia <span>Archivio privato · preparazione condivisa</span></footer>
 </div>
 <dialog id="raw-dialog" aria-labelledby="raw-title"><div class="dialog-heading"><div><span class="eyebrow">RIGA ORIGINALE</span><h2 id="raw-title">Dettaglio del report</h2></div><button class="icon-button" id="close-raw" aria-label="Chiudi">×</button></div><div id="raw-content"></div></dialog>
 <div class="toast" id="private-toast" role="status" aria-live="polite"></div>
+<dialog id="preparation-dialog" class="op-dialog" aria-label="Distinta di preparazione"></dialog>
+<dialog id="catalogue-dialog" class="catalogue-dialog" aria-label="Dettaglio archivio"></dialog>
+<dialog id="rf-dialog" class="rf-dialog" aria-label="Etichette delle buste"></dialog>
 </body>
 </html>
