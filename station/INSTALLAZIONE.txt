@@ -17,6 +17,12 @@ L'accesso alle lavorazioni richiede l'attivazione del modulo RFID online.
 Se compare il messaggio che il modulo non è attivo, puoi comunque installare
 il programma e rilevare i dispositivi dalla schermata iniziale.
 
+Gli stessi programmi servono tutte le strutture. Il gestore deve prima associare
+esplicitamente gli archivi di ciascun cliente alla sua sede. Il cliente scelto
+dall'operatore viene verificato rispetto al tag: i capi di un'altra struttura
+sono segnalati con il cliente effettivo e restano fuori dai movimenti e dal
+casellario. Tag sconosciuti o assegnati a più clienti richiedono verifica.
+
 Questa versione prova il collegamento al gestionale e le letture inserite
 manualmente. NON include ancora i driver delle antenne, delle centraline
 né delle stampantine. NON sostituisce il software di produzione esistente.

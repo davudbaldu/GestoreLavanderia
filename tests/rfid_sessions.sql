@@ -4,7 +4,8 @@ insert into public.app_members(user_id) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa
 insert into public.np_import_batches(id,archive,kind,source_key,file_name,status) values
  ('11111111-1111-4111-8111-111111111111','ospiti','persone','rf-fixture','synthetic','ready'),
  ('22222222-2222-4222-8222-222222222222','ospiti','tag','rf-fixture','synthetic','ready'),
- ('33333333-3333-4333-8333-333333333333','divise','tag','rf-fixture','synthetic','ready');
+ ('33333333-3333-4333-8333-333333333333','divise','tag','rf-fixture','synthetic','ready'),
+ ('44444444-4444-4444-8444-444444444444','ospiti','tag','rf-other-fixture','synthetic','ready');
 insert into public.np_source_records(batch_id,source_row,person_name_key,raw_json) values
  ('11111111-1111-4111-8111-111111111111',2,'DEMO|UNO','{"Cognome":"DEMO","Nome":"UNO","Area":"PAPAVERO","Piano":"1"}'),
  ('11111111-1111-4111-8111-111111111111',3,'DEMO|DUE','{"Cognome":"DEMO","Nome":"DUE","Area":"PAPAVERO","Piano":"1"}'),
@@ -17,11 +18,13 @@ insert into public.np_source_records(batch_id,source_row,person_name_key,tag_id,
  ('22222222-2222-4222-8222-222222222222',4,'DEMO|DUE','0000000000000003','{"Cognome":"DEMO","Nome":"DUE","Area":"PAPAVERO","Classe merceologica":"Maglia"}'),
  ('22222222-2222-4222-8222-222222222222',5,'DEMO|TRE','0000000000000004','{"Cognome":"DEMO","Nome":"TRE","Area":"PAPAVERO","Classe merceologica":"Maglia"}'),
  ('33333333-3333-4333-8333-333333333333',2,'OPERATORE|DEMO','0000000000000005','{"Cognome":"OPERATORE","Nome":"DEMO","Area":"OSS"}'),
- ('22222222-2222-4222-8222-222222222222',6,'ALTRO|CLIENTE','0000000000000006','{"Cognome":"ALTRO","Nome":"CLIENTE","Area":"PAPAVERO"}'),
+ ('44444444-4444-4444-8444-444444444444',6,'ALTRO|CLIENTE','0000000000000006','{"Cognome":"ALTRO","Nome":"CLIENTE","Area":"PAPAVERO"}'),
  ('22222222-2222-4222-8222-222222222222',7,'OMONIMO|DEMO','0000000000000007','{"Cognome":"OMONIMO","Nome":"DEMO","Area":"PAPAVERO"}');
 insert into public.rf_clients(id,name,site) values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','Cliente test','Sede test'),('dddddddd-dddd-4ddd-8ddd-dddddddddddd','Altro cliente test','Altra sede');
 insert into public.rf_stations(code,name,kind,slot_count) values('test-sporco','Tunnel test','sporco',null),('test-pulito-01','Armadio test 1','pulito',90),('test-pulito-02','Armadio test 2','pulito',90);
-insert into public.rf_bindings(source_record_id,client_id) select id,case when tag_id='0000000000000006' then 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid else 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid end from public.np_source_records where batch_id in ('22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333') and tag_id is not null;
+insert into public.rf_import_clients(batch_id,client_id,recorded_by)
+ select id,case when id='44444444-4444-4444-8444-444444444444' then 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid else 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid end,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' from public.np_import_batches where source_key in ('rf-fixture','rf-other-fixture');
+insert into public.rf_bindings(source_record_id,client_id) select r.id,m.client_id from public.np_source_records r join public.rf_import_clients m on m.batch_id=r.batch_id;
 set local role anon;
 do $$begin begin perform public.rf_start_session(gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),'ospiti');raise exception 'Anonymous opens station';exception when insufficient_privilege then null;end;end$$;
 reset role;

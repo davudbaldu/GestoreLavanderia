@@ -145,8 +145,8 @@ class StationApp:
         self.counts=tk.StringVar(value='');ttk.Label(self.body,textvariable=self.counts).pack(anchor='w',pady=4)
         self.grid=ttk.Frame(self.body);self.grid.pack(fill='x',pady=8)
         log=ttk.Frame(self.body);log.pack(fill='both',expand=True)
-        self.tree=ttk.Treeview(log,columns=('tag','name','outcome','slot'),show='headings',height=7)
-        for name,width in [('tag',225),('name',270),('outcome',255),('slot',80)]:self.tree.heading(name,text={'tag':'Tag','name':'Nominativo','outcome':'Esito','slot':'Casella'}[name]);self.tree.column(name,width=width,minwidth=65)
+        self.tree=ttk.Treeview(log,columns=('tag','client','name','outcome','slot'),show='headings',height=7)
+        for name,width in [('tag',200),('client',210),('name',220),('outcome',220),('slot',65)]:self.tree.heading(name,text={'tag':'Tag','client':'Struttura del capo','name':'Nominativo','outcome':'Esito','slot':'Casella'}[name]);self.tree.column(name,width=width,minwidth=65)
         scrollbar=ttk.Scrollbar(log,orient='vertical',command=self.tree.yview);self.tree.configure(yscrollcommand=scrollbar.set);scrollbar.pack(side='right',fill='y');self.tree.pack(fill='both',expand=True)
         pages=ttk.Frame(self.body);pages.pack(fill='x',pady=8)
         ttk.Button(pages,text='Più recenti',command=lambda:self.page(None)).pack(side='left');ttk.Button(pages,text='Precedenti',command=self.older).pack(side='left',padx=10)
@@ -213,7 +213,7 @@ class StationApp:
         self.counts.set(f"Letture {counts['reads']} · Capi {counts['accepted']} · Ripetute {counts['duplicates']} · Segnalate {counts['blocked']} · Movimenti {counts['movements']} · Da inviare {self.outbox.pending()}"+(f' · Caselle {occupied}/{capacity}' if self.kind=='pulito' else ''))
         if previous is not None and previous!=counts['accepted']:self.placed.set(False)
         self.tree.delete(*self.tree.get_children())
-        for read in data['reads']:self.tree.insert('', 'end', values=(read['tag'],read['snapshot'].get('name','—'),OUTCOMES.get(read['outcome'],read['outcome']),read['slot'] or '—'))
+        for read in data['reads']:self.tree.insert('', 'end', values=(read['tag'],' · '.join(filter(None,[read['snapshot'].get('client'),read['snapshot'].get('site')])) or 'Da identificare',read['snapshot'].get('name','—'),OUTCOMES.get(read['outcome'],read['outcome']),read['slot'] or '—'))
         for child in self.grid.winfo_children():child.destroy()
         if self.kind=='pulito':
             for index in range(capacity):
@@ -223,7 +223,7 @@ class StationApp:
             for column in range(15):self.grid.columnconfigure(column,weight=1)
         if data['reads'] and not self.outbox.pending():
             last=data['reads'][0]
-            self.instruction.set(('CASELLA '+str(last['slot'])+' · '+last['snapshot'].get('name','')) if self.kind=='pulito' and last['slot'] else OUTCOMES.get(last['outcome'],last['outcome']).upper())
+            self.instruction.set(('CASELLA '+str(last['slot'])+' · '+last['snapshot'].get('name','')) if self.kind=='pulito' and last['slot'] else OUTCOMES.get(last['outcome'],last['outcome']).upper()+(' · '+last['snapshot'].get('client','')+' · '+last['snapshot'].get('site','') if last['outcome']=='cliente_diverso' else ''))
         self.status.set(('Armadio pieno: prepara la chiusura.' if capacity and occupied==capacity else 'Collegato al gestionale · sessione '+self.session['status'])+' · COLLAUDO')
 
     def page(self,before):

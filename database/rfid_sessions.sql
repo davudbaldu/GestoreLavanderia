@@ -3,6 +3,13 @@ create schema rf_private;
 revoke all on schema rf_private from public,anon;
 grant usage on schema rf_private to authenticated;
 create table public.rf_clients(id uuid primary key default gen_random_uuid(),name text not null,site text not null,unique(name,site));
+create unique index rf_clients_identity on public.rf_clients(lower(btrim(name)),lower(btrim(site)));
+create table public.rf_import_clients(
+ batch_id uuid primary key references public.np_import_batches(id),client_id uuid not null references public.rf_clients(id),
+ use_location_rules boolean not null default false,recorded_by uuid not null references auth.users(id),recorded_at timestamptz not null default now()
+);
+create index rf_import_clients_client on public.rf_import_clients(client_id);
+create index rf_import_clients_actor on public.rf_import_clients(recorded_by);
 create table public.rf_stations(id uuid primary key default gen_random_uuid(),code text not null unique,name text not null,kind text not null check(kind in ('sporco','pulito')),slot_count integer check(slot_count between 1 and 500),hardware_ready boolean not null default false);
 create table public.rf_bindings(source_record_id bigint primary key references public.np_source_records(id),client_id uuid not null references public.rf_clients(id));
 create index rf_bindings_client on public.rf_bindings(client_id);
@@ -44,7 +51,7 @@ end$$;
 revoke all on function rf_private.authorize() from public,anon;
 grant execute on function rf_private.authorize() to authenticated;
 do $$declare t text;begin
- foreach t in array array['rf_clients','rf_stations','rf_bindings','rf_sessions','rf_reads','rf_allocations','rf_reservations','rf_movements','rf_label_jobs','rf_print_attempts'] loop
+ foreach t in array array['rf_clients','rf_import_clients','rf_stations','rf_bindings','rf_sessions','rf_reads','rf_allocations','rf_reservations','rf_movements','rf_label_jobs','rf_print_attempts'] loop
  execute format('alter table public.%I enable row level security',t);
  execute format('revoke all on public.%I from public,anon,authenticated',t);
  execute format('grant select on public.%I to authenticated',t);
@@ -54,17 +61,78 @@ end$$;
 
 revoke all on sequence public.rf_reads_seq_seq,public.rf_print_attempts_seq_seq from public,anon,authenticated;
 
+-- The pilot's global latest-import view must not choose between different clients.
+create view public.rf_latest_batches with(security_invoker=true) as
+ select distinct on(m.client_id,b.archive,b.kind) b.id,m.client_id,b.archive,b.kind,m.use_location_rules
+ from public.rf_import_clients m join public.np_import_batches b on b.id=m.batch_id
+ where b.status='ready' order by m.client_id,b.archive,b.kind,b.imported_at desc,b.id desc;
+create view public.rf_catalogue_records with(security_invoker=true) as
+ select r.id,b.client_id,b.archive,b.kind,r.person_name_key,r.tag_id,
+ r.directory_surname as surname,r.directory_given_name as given_name,r.directory_article as article,
+ coalesce(l.department,r.directory_department) as department,coalesce(l.floor,np_private.clean_floor(r.directory_floor)) as floor,
+ case when r.directory_given_name in ('SCORTA','SCORTE') or r.directory_surname in ('SCORTA','SCORTE') then 'scorta'
+ when r.directory_surname ~ '^TAGLIA' or r.directory_given_name ~ '^TAGLIA' or (r.directory_surname='PIANO' and r.directory_given_name ~ '^[0-9]+') then 'generica'
+ when r.directory_surname='' or r.directory_given_name='' or r.directory_surname ~ '^[0-9]+$' then 'da_verificare' else 'persona' end as category
+ from public.rf_latest_batches b join public.np_source_records r on r.batch_id=b.id
+ join public.rf_bindings a on a.source_record_id=r.id and a.client_id=b.client_id
+ left join public.np_latest_locations l on b.use_location_rules and l.archive=b.archive and l.source_department=r.directory_department and l.source_floor=r.directory_floor;
+revoke all on public.rf_latest_batches,public.rf_catalogue_records from public,anon;
+grant select on public.rf_latest_batches,public.rf_catalogue_records to authenticated;
+create view public.rf_import_inventory with(security_invoker=true) as
+ select b.id,b.archive,b.kind,b.file_name,b.imported_at,m.client_id,c.name as client_name,c.site,m.use_location_rules
+ from public.np_import_batches b left join public.rf_import_clients m on m.batch_id=b.id left join public.rf_clients c on c.id=m.client_id where b.status='ready';
+revoke all on public.rf_import_inventory from public,anon;
+grant select on public.rf_import_inventory to authenticated;
+
+create function rf_private.register_client(p_id uuid,p_name text,p_site text) returns jsonb language plpgsql security definer set search_path='' as $$
+declare existing public.rf_clients;
+begin
+ perform rf_private.authorize();
+ if p_id is null or length(btrim(coalesce(p_name,''))) not between 2 and 160 or length(btrim(coalesce(p_site,''))) not between 2 and 160 then raise exception 'Indica cliente e sede.';end if;
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_id::text,89));
+ select * into existing from public.rf_clients where id=p_id;
+ if found then
+  if existing.name<>btrim(p_name) or existing.site<>btrim(p_site) then raise exception 'Identificativo cliente già utilizzato per altri dati.';end if;
+ else
+  insert into public.rf_clients(id,name,site) values(p_id,btrim(p_name),btrim(p_site)) returning * into existing;
+ end if;
+ return to_jsonb(existing);
+end$$;
+
+create function rf_private.bind_import(p_batch uuid,p_client uuid,p_use_location_rules boolean) returns jsonb language plpgsql security definer set search_path='' as $$
+declare existing public.rf_import_clients; import_status text;n integer;
+begin
+ perform rf_private.authorize();
+ -- Exclusive client lock serializes import changes against opening a session.
+ perform 1 from public.rf_clients where id=p_client for update;if not found then raise exception 'Cliente non disponibile.';end if;
+ select status into import_status from public.np_import_batches where id=p_batch for update;
+ if not found or import_status<>'ready' then raise exception 'Archivio non pronto per l’associazione.';end if;
+ select * into existing from public.rf_import_clients where batch_id=p_batch;
+ if found then
+  if existing.client_id<>p_client or existing.use_location_rules<>coalesce(p_use_location_rules,false) then raise exception 'Archivio già associato: la struttura non può essere cambiata.';end if;
+ else
+  if exists(select 1 from public.rf_sessions where client_id=p_client and status='aperta') then raise exception 'Chiudi le sessioni della struttura prima di aggiornare gli archivi.';end if;
+  if exists(select 1 from public.rf_bindings a join public.np_source_records r on r.id=a.source_record_id where r.batch_id=p_batch and a.client_id<>p_client) then raise exception 'Archivio con associazioni in conflitto: verifica i dati.';end if;
+  insert into public.rf_import_clients(batch_id,client_id,use_location_rules,recorded_by) values(p_batch,p_client,coalesce(p_use_location_rules,false),auth.uid());
+  insert into public.rf_bindings(source_record_id,client_id) select id,p_client from public.np_source_records where batch_id=p_batch on conflict(source_record_id) do nothing;
+ end if;
+ select count(*) into n from public.rf_bindings a join public.np_source_records r on r.id=a.source_record_id where r.batch_id=p_batch and a.client_id=p_client;
+ return jsonb_build_object('batch',p_batch,'client',p_client,'records',n);
+end$$;
+
 create function rf_private.start_session(p_id uuid,p_station uuid,p_client uuid,p_archive text,p_mode text,p_empty boolean) returns jsonb
  language plpgsql security definer set search_path='' as $$
 declare s public.rf_stations; existing public.rf_sessions;
 begin
  perform rf_private.authorize();
+ perform 1 from public.rf_clients where id=p_client for share;if not found then raise exception 'Cliente non disponibile.';end if;
  select * into s from public.rf_stations where id=p_station for update;if not found then raise exception 'Postazione non disponibile.';end if;
  select * into existing from public.rf_sessions where id=p_id;
  if found then
  if existing.station_id<>p_station or existing.client_id<>p_client or existing.archive<>p_archive or existing.mode<>p_mode then raise exception 'Identificativo sessione già usato per altri dati.';end if;
  return to_jsonb(existing);end if;
  if p_mode not in ('collaudo','produzione') or p_archive not in ('ospiti','divise','tutti') then raise exception 'Modalità o archivio non valido.';end if;
+ if not exists(select 1 from public.rf_latest_batches where client_id=p_client and kind='tag' and (p_archive='tutti' or archive=p_archive)) then raise exception 'Importa e associa l’archivio tag di questa struttura prima di iniziare.';end if;
  if p_mode='produzione' and not s.hardware_ready then raise exception 'La postazione non è ancora collaudata con l’hardware.';end if;
  if s.kind='pulito' and p_empty is not true then raise exception 'Conferma che l’armadio sia stato svuotato prima di riutilizzarlo.';end if;
  if s.kind='pulito' and s.slot_count is null then raise exception 'Configura il numero di caselle prima di iniziare.';end if;
@@ -75,7 +143,7 @@ end$$;
 
 create function rf_private.read_batch(p_session uuid,p_events jsonb) returns jsonb
  language plpgsql security definer set search_path='' as $$
-declare s public.rf_sessions; station public.rf_stations;e jsonb;eid uuid;raw_value text;tag_value text;observed timestamptz;outcome text;matches integer;garment public.np_catalogue_records;
+declare s public.rf_sessions; station public.rf_stations;e jsonb;eid uuid;raw_value text;tag_value text;observed timestamptz;outcome text;matches integer;garment public.rf_catalogue_records;
  person_id bigint;person_count integer;assigned integer;busy uuid;prior public.rf_reads;row_read public.rf_reads;results jsonb='[]'::jsonb;details jsonb;
 begin
  perform rf_private.authorize();select * into s from public.rf_sessions where id=p_session for update;if not found then raise exception 'Sessione non disponibile.';end if;
@@ -96,14 +164,14 @@ begin
   if s.status='chiusa' then outcome='sessione_chiusa';
   elsif tag_value !~ '^[0-9A-F]{8,64}$' then outcome='tag_non_valido';
   else
-   select count(*) into matches from public.np_catalogue_records r join public.rf_bindings b on b.source_record_id=r.id where r.kind='tag' and r.tag_id=tag_value;
+   select count(*) into matches from public.rf_catalogue_records r where r.kind='tag' and r.tag_id=tag_value;
    if matches=0 then outcome='tag_sconosciuto';elsif matches>1 then outcome='tag_ambiguo';else
-    select r.* into garment from public.np_catalogue_records r join public.rf_bindings b on b.source_record_id=r.id where r.kind='tag' and r.tag_id=tag_value;
-    if not exists(select 1 from public.rf_bindings where source_record_id=garment.id and client_id=s.client_id) then outcome='cliente_diverso';
+    select r.* into garment from public.rf_catalogue_records r where r.kind='tag' and r.tag_id=tag_value;
+    if garment.client_id<>s.client_id then outcome='cliente_diverso';
     elsif s.archive<>'tutti' and garment.archive<>s.archive then outcome='archivio_diverso';
     elsif exists(select 1 from public.rf_reads where session_id=p_session and source_record_id=garment.id and rf_reads.outcome='accettata') then outcome='ripetizione';select person_source_id,slot into person_id,assigned from public.rf_reads where session_id=p_session and source_record_id=garment.id and rf_reads.outcome='accettata';
     elsif station.kind='pulito' then
-     select count(*),min(id) into person_count,person_id from public.np_catalogue_records where kind='persone' and archive=garment.archive and person_name_key=garment.person_name_key and department=garment.department;
+     select count(*),min(id) into person_count,person_id from public.rf_catalogue_records where client_id=s.client_id and kind='persone' and archive=garment.archive and person_name_key=garment.person_name_key and department=garment.department;
      if person_count<>1 then outcome='identita_da_verificare';else
       perform pg_catalog.pg_advisory_xact_lock(garment.id);
       select session_id into busy from public.rf_reservations where source_record_id=garment.id and mode=s.mode;
@@ -118,7 +186,7 @@ begin
       end if;
      end if;
     end if;
-    details=jsonb_build_object('name',garment.surname||' '||garment.given_name,'article',garment.article,'archive',garment.archive,'department',garment.department,'floor',garment.floor);
+    details=jsonb_build_object('client_id',garment.client_id,'client',(select name from public.rf_clients where id=garment.client_id),'site',(select site from public.rf_clients where id=garment.client_id),'name',garment.surname||' '||garment.given_name,'article',garment.article,'archive',garment.archive,'department',garment.department,'floor',garment.floor);
    end if;
   end if;
   insert into public.rf_reads(id,session_id,raw_tag,tag,observation,observed_at,outcome,source_record_id,person_source_id,slot,snapshot)
@@ -149,7 +217,7 @@ begin
    insert into public.rf_movements(session_id,read_id,source_record_id,direction,occurred_at)
     select p_session,id,source_record_id,'uscita_pulito',closed_time from public.rf_reads where session_id=p_session and outcome='accettata';
    insert into public.rf_label_jobs(session_id,slot,payload)
-    select p_session,a.slot,jsonb_build_object('mode',s.mode,'session',s.id,'station',station.name,'client',c.name,'site',c.site,'archive',coalesce(a.snapshot->>'archive',s.archive),'closed_at',closed_time,'slot',a.slot,'subject',a.snapshot,'count',count(r.id),'garments',jsonb_agg(jsonb_build_object('tag',r.tag,'article',r.snapshot->>'article') order by r.seq))
+    select p_session,a.slot,jsonb_build_object('mode',s.mode,'session',s.id,'station',station.name,'client_id',s.client_id,'client',c.name,'site',c.site,'archive',coalesce(a.snapshot->>'archive',s.archive),'closed_at',closed_time,'slot',a.slot,'subject',a.snapshot,'count',count(r.id),'garments',jsonb_agg(jsonb_build_object('tag',r.tag,'article',r.snapshot->>'article') order by r.seq))
     from public.rf_allocations a join public.rf_reads r on r.session_id=a.session_id and r.slot=a.slot and r.outcome='accettata'
     join public.rf_clients c on c.id=s.client_id where a.session_id=p_session group by a.slot,a.snapshot,c.name,c.site;
    delete from public.rf_reservations where session_id=p_session;
@@ -181,6 +249,8 @@ create view public.rf_label_status with(security_invoker=true) as
  left join lateral(select outcome,detail,recorded_at from public.rf_print_attempts where job_id=j.id order by seq desc limit 1)a on true;
 revoke all on public.rf_label_status from public,anon;grant select on public.rf_label_status to authenticated;
 
+create function public.rf_register_client(p_id uuid,p_name text,p_site text) returns jsonb language sql security invoker set search_path='' as $$select rf_private.register_client(p_id,p_name,p_site)$$;
+create function public.rf_bind_import(p_batch uuid,p_client uuid,p_use_location_rules boolean default false) returns jsonb language sql security invoker set search_path='' as $$select rf_private.bind_import(p_batch,p_client,p_use_location_rules)$$;
 create function public.rf_start_session(p_id uuid,p_station uuid,p_client uuid,p_archive text,p_mode text default 'collaudo',p_empty boolean default false) returns jsonb language sql security invoker set search_path='' as $$select rf_private.start_session(p_id,p_station,p_client,p_archive,p_mode,p_empty)$$;
 create function public.rf_read_batch(p_session uuid,p_events jsonb) returns jsonb language sql security invoker set search_path='' as $$select rf_private.read_batch(p_session,p_events)$$;
 create function public.rf_close_session(p_session uuid,p_expected integer,p_note text default '') returns jsonb language sql security invoker set search_path='' as $$select rf_private.close_session(p_session,p_expected,p_note)$$;
@@ -195,7 +265,7 @@ $$;
 create view public.rf_session_list with(security_invoker=true) as select s.*,st.name as station_name,st.kind,c.name as client_name,c.site from public.rf_sessions s join public.rf_stations st on st.id=s.station_id join public.rf_clients c on c.id=s.client_id;
 revoke all on public.rf_session_list from public,anon;grant select on public.rf_session_list to authenticated;
 do $$declare f record;begin
- for f in select p.oid::regprocedure as signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='rf_private' or (n.nspname='public' and p.proname in ('rf_start_session','rf_read_batch','rf_close_session','rf_configure_slots','rf_snapshot','rf_print_attempt')) loop
+ for f in select p.oid::regprocedure as signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='rf_private' or (n.nspname='public' and p.proname in ('rf_register_client','rf_bind_import','rf_start_session','rf_read_batch','rf_close_session','rf_configure_slots','rf_snapshot','rf_print_attempt')) loop
  execute format('revoke all on function %s from public,anon',f.signature);execute format('grant execute on function %s to authenticated',f.signature);
  end loop;
 end$$;
