@@ -5,12 +5,17 @@ Sporco.exe: PC del tunnel. Pulito.exe: PC di ciascun armadio.
 Richiede Windows 10/11 a 64 bit per questa prima compilazione.
 
 1. Estrarre lo ZIP e aprire l'eseguibile su un PC Windows.
-2. Accedere con l'account personale abilitato al gestionale.
-3. Scegliere la propria postazione e la struttura da lavorare.
-4. Premere "Installa su questo PC e avvia con Windows" per copiare
+2. Premere "Rileva lettori e stampanti" per identificare i dispositivi:
+   non serve aver effettuato l'accesso al gestionale.
+3. Premere "Installa su questo PC e avvia con Windows" per copiare
    il programma nella cartella personale e abilitarlo all'accesso Windows.
+4. Accedere con l'account personale e scegliere postazione e struttura.
 5. Per ricordare l'accesso, selezionare la relativa opzione di Windows:
    viene conservata solo una sessione cifrata con DPAPI, mai la password.
+
+L'accesso alle lavorazioni richiede l'attivazione del modulo RFID online.
+Se compare il messaggio che il modulo non è attivo, puoi comunque installare
+il programma e rilevare i dispositivi dalla schermata iniziale.
 
 Questa versione prova il collegamento al gestionale e le letture inserite
 manualmente. NON include ancora i driver delle antenne, delle centraline

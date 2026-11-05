@@ -116,6 +116,7 @@ class StationApp:
         ttk.Button(frame,text='Accedi',command=login).pack(anchor='w',pady=10)
         password.bind('<Return>',lambda _:login())
         ttk.Button(frame,text='Rileva lettori e stampanti',command=self.diagnostics).pack(anchor='w',pady=14)
+        ttk.Button(frame,text='Installa su questo PC e avvia con Windows',command=self.install).pack(anchor='w',pady=8)
 
     def show_station(self, data):
         stations,self.clients,self.open_sessions=data;self.stations=[s for s in stations if s['kind']==self.kind]
