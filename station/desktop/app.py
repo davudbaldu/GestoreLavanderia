@@ -301,7 +301,10 @@ def main(kind):
     parser.add_argument('--self-test',action='store_true');parser.add_argument('--report')
     parser.add_argument('--disable-startup',action='store_true');args=parser.parse_args()
     if args.self_test:
-        result=self_test(kind)
+        try:result=self_test(kind)
+        except Exception as error:
+            if args.report:Path(args.report).write_text(json.dumps({'kind':kind,'error_type':type(error).__name__,'error':str(error)}),encoding='utf-8')
+            raise
         if args.report:Path(args.report).write_text(json.dumps(result),encoding='utf-8')
         elif sys.stdout:print(json.dumps(result))
         return

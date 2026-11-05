@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,8 +23,14 @@ class ReadOutbox:
                 payload TEXT NOT NULL, result TEXT,
                 attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT)''')
 
+    @contextmanager
     def connect(self):
-        return sqlite3.connect(self.path, timeout=5)
+        connection = sqlite3.connect(self.path, timeout=5)
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def enqueue(self, session_id: str, kind: str, tag: str, observed_at: str | None = None, metadata: dict | None = None) -> str:
         uuid.UUID(session_id)
