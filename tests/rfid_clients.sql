@@ -54,6 +54,11 @@ do $$declare a uuid='cccccccc-cccc-4ccc-8ccc-cccccccccccc';b uuid='dddddddd-dddd
  if not exists(select 1 from public.rf_catalogue_records where client_id=a and department='NORD CORRETTO') or not exists(select 1 from public.rf_catalogue_records where client_id=b and department='NORD') then raise exception 'Pilot corrections leak across client imports';end if;
  if exists(select 1 from public.rf_catalogue_records where tag_id='CCCC0001') then raise exception 'Unbound import inferred';end if;
  perform public.rf_start_session(ds,station,a,'ospiti');
+ -- One client per tunnel session: retries preserve it; switching client must close first.
+ perform public.rf_start_session(ds,station,a,'ospiti');
+ begin perform public.rf_start_session(ds,station,b,'ospiti');raise exception 'Existing session changed client';exception when raise_exception then if sqlerrm='Existing session changed client' then raise;end if;end;
+ begin perform public.rf_start_session(gen_random_uuid(),station,b,'ospiti');raise exception 'Tunnel accepted concurrent clients';exception when raise_exception then if sqlerrm='Tunnel accepted concurrent clients' then raise;end if;end;
+ if (select client_id from public.rf_sessions where id=ds)<>a then raise exception 'Rejected switch changed session client';end if;
  -- Idempotent repeats are safe, but changing the catalogue during a session is refused.
  perform public.rf_bind_import('10000000-0000-4000-8000-000000000005',a,true);
  begin perform public.rf_bind_import('10000000-0000-4000-8000-000000000006',a);raise exception 'Active client imports changed';exception when raise_exception then if sqlerrm='Active client imports changed' then raise;end if;end;
