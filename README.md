@@ -65,9 +65,9 @@ Il workflow GitHub Actions esegue questi controlli a ogni aggiornamento di main.
 
 ## Perimetro e prossimi passi
 
-La demo non include ancora autenticazione applicativa, database condiviso, emissione DDT definitiva, QR code o connessione ai lettori RFID. Le modifiche demo alle consegne sono salvate soltanto nel browser. I risultati delle analisi CSV restano in memoria.
+La pagina dimostrativa rimane separata dall’area autenticata, che dispone di un database privato condiviso e del modulo di preparazione. Emissione DDT definitiva, QR code e connessione ai lettori RFID restano da realizzare. Le modifiche demo alle consegne sono salvate soltanto nel browser. I risultati delle analisi CSV restano in memoria.
 
-Prima di attivare dati reali per più utenti servono accessi e permessi verificati, database privato, backup, ripristino e collegamento alle postazioni di lettura. GitHub Pages serve la demo statica; il servizio applicativo richiede hosting separato.
+Prima dell’uso operativo da parte di più ruoli servono permessi dedicati verificati, backup e ripristino collaudati e collegamento alle postazioni di lettura. GitHub Pages serve la demo statica; il servizio applicativo richiede hosting separato.
 
 Vedi [architettura del pilota](architecture.md).
 
@@ -81,4 +81,33 @@ L'interfaccia di consultazione è in `docs/riservato.html`. Usa Supabase Auth e 
 
 Il proprietario abilita il primo account con un codice personale, valido una sola volta e con scadenza. La verifica dell'email è obbligatoria. Il codice non è nel repository; nel database è conservato solo il suo hash. La sola registrazione non concede accesso ai dati.
 
-Gli originali importati e le segnalazioni risiedono nel database privato e non vengono distribuiti con il sito. La demo in `docs/index.html` rimane separata dai dati operativi.
+Gli originali importati e le segnalazioni risiedono nel database privato e non vengono distribuiti con il sito. La demo in `docs/index.html` rimane separata dai dati operativi. Le distinte reali si trovano esclusivamente nell’area riservata.
+
+## Preparazione condivisa e installazione
+
+L'area riservata comprende **Consegne e preparazione**: articoli, contenitori,
+revisioni e conferme di pronto/ritiro/consegna sono salvati nel database privato.
+L'accesso iniziale è limitato al proprietario abilitato. Le distinte operative
+non sono ancora DDT emessi e non sono collegate alle letture RFID.
+
+Il manifest permette di installare il gestionale dai browser compatibili quando
+servito in HTTPS o su localhost. Se disponibile compare **Installa app**; è
+possibile usare anche il comando di installazione del browser. Su iPhone/iPad si
+usa il menu Condividi → Aggiungi alla schermata Home. Questa prima versione
+richiede connessione per i dati condivisi e non conserva operazioni offline.
+
+Il software installato alle antenne e agli armadi sarà un componente separato,
+con protocolli hardware e continuità operativa da collaudare sull'impianto.
+
+## Programmi Windows delle postazioni
+
+Sono presenti due entry point nativi: `station/sporco.py` e `station/pulito.py`.
+Il workflow **Build Windows stations** genera `Sporco.exe` e `Pulito.exe` su
+Windows, esegue il collaudo del pacchetto e conserva i download come artefatti.
+Le istruzioni sono in `station/INSTALLAZIONE.txt`.
+
+Questa prima versione è di collaudo: può collegarsi al backend autenticato,
+conservare osservazioni e provare i flussi; non contiene ancora i driver di
+antenne, centraline o stampanti. L'avvio automatico configurabile è all'accesso
+Windows. Il funzionamento prima del login e il sorting offline completo
+richiedono componenti successivi.

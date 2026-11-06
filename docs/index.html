@@ -5,12 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#163d3b">
 <meta name="robots" content="noindex,nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; manifest-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <title>Gestore Lavanderia · Pilota</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="icon" href="./favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./theme.css">
 <script src="./core.js" defer></script>
 <script src="./app.js" defer></script>
+<script src="./install.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">Vai al contenuto</a>
@@ -28,8 +32,9 @@
 <div class="sidebar-bottom"><span class="avatar">DE</span><div>Direzione<small>Vista operativa demo</small></div><span class="live-dot" aria-hidden="true"></span></div>
 </aside>
 <div class="shell">
-<header class="topbar"><div class="breadcrumb">Lavanderia <span>/</span> <strong id="crumb">Panoramica</strong></div><div class="topbar-right"><a class="button small primary" href="./riservato.html">Archivio riservato ↗</a><span class="demo-pill">DEMO</span><span id="today"></span></div></header>
+<header class="topbar"><div class="breadcrumb">Lavanderia <span>/</span> <strong id="crumb">Panoramica</strong></div><div class="topbar-right"><button id="install-app" class="button small secondary" hidden>Installa app</button><a class="button small primary" href="./riservato.html">Archivio riservato ↗</a><span class="demo-pill">DEMO</span><span id="today"></span></div></header>
 <div class="demo-note"><span class="demo-note-dot"></span><span><strong>Dati dimostrativi.</strong> Le modifiche alla demo restano su questo browser. I CSV scelti vengono analizzati in memoria, senza invio a un server.</span></div>
+<p id="connection-notice" class="notice connection-notice" role="status" hidden>Connessione assente. Per consultare e salvare i dati condivisi serve il collegamento al server.</p>
 <main id="content" tabindex="-1"></main>
 <footer>Gestore Lavanderia <span>Versione pilota · interfaccia e verifica importazioni</span></footer>
 </div>
