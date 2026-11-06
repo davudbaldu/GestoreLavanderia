@@ -25,6 +25,8 @@ from .cloud import CloudAPI, CloudError
 from . import startup
 from .labels import render_labels
 from .diagnostics import collect as collect_diagnostics
+from .hardware import profile_from_settings, probe_reader, ProbeError, serial_available
+from threading import Event
 import webbrowser
 from outbox import ReadOutbox
 
@@ -57,7 +59,7 @@ class StationApp:
         self.preferences=Preferences(self.directory); self.store=TokenStore(self.directory)
         self.outbox=ReadOutbox(self.directory/'observations.sqlite3'); self.api=CloudAPI(backend_config())
         self.pool=ThreadPoolExecutor(max_workers=1); self.busy=False; self.stopped=False
-        self.session=None; self.snapshot=None; self.before=None; self.remember=False; self.labels=[]
+        self.session=None; self.snapshot=None; self.before=None; self.remember=False; self.labels=[];self.probe_stop=None;self.probe_window=None
         self.root.title(('Sporco' if kind=='sporco' else 'Pulito')+' · Gestore Lavanderia · COLLAUDO')
         self.root.geometry('1180x860'); self.root.minsize(920,680); self.root.configure(bg='#f3f6fb')
         style=ttk.Style(); style.theme_use('clam')
@@ -116,6 +118,7 @@ class StationApp:
         ttk.Button(frame,text='Accedi',command=login).pack(anchor='w',pady=10)
         password.bind('<Return>',lambda _:login())
         ttk.Button(frame,text='Rileva lettori e stampanti',command=self.diagnostics).pack(anchor='w',pady=14)
+        if self.kind=='pulito':ttk.Button(frame,text='Prova lettore dell’armadio',command=self.hardware_probe).pack(anchor='w',pady=8)
         ttk.Button(frame,text='Installa su questo PC e avvia con Windows',command=self.install).pack(anchor='w',pady=8)
 
     def show_station(self, data):
@@ -133,6 +136,7 @@ class StationApp:
         ttk.Button(controls,text='Apri sessione di collaudo',command=self.start).pack(side='left')
         ttk.Button(controls,text='Riprendi sessione aperta',command=self.resume).pack(side='left',padx=10)
         ttk.Button(controls,text='Rileva dispositivi',command=self.diagnostics).pack(side='left',padx=10)
+        if self.kind=='pulito':ttk.Button(controls,text='Prova lettore',command=self.hardware_probe).pack(side='left',padx=4)
         ttk.Button(controls,text='Installa su questo PC e avvia con Windows',command=self.install).pack(side='right')
         self.context=tk.StringVar(value='Scegli struttura e postazione. L’identità della postazione rimane memorizzata su questo PC.')
         ttk.Label(self.body,textvariable=self.context,wraplength=1100).pack(anchor='w',pady=8)
@@ -268,6 +272,46 @@ class StationApp:
             self.status.set('Rilevazione completata. Nessun comando è stato inviato ai dispositivi.')
         self.run(collect_diagnostics,show)
 
+    def hardware_probe(self):
+        if self.busy:return
+        if self.probe_window and self.probe_window.winfo_exists():self.probe_window.lift();return
+        from tkinter import filedialog
+        source=filedialog.askopenfilename(parent=self.root,title='Seleziona Settings.config di Sort Pulito',filetypes=[('Impostazioni','*.config'),('Tutti i file','*.*')])
+        if not source:return
+        try:profile=profile_from_settings(source)
+        except (ProbeError,OSError) as error:self.status.set(str(error));return
+        self.probe_stop=Event();stop=self.probe_stop
+        window=tk.Toplevel(self.root);window.title('Prova lettore dell’armadio');window.geometry('760x560')
+        self.probe_window=window
+        ttk.Label(window,text='Lettore su '+profile.port+' · '+str(profile.baudrate)+' baud · formato '+str(profile.field_length)+' caratteri',font=('Segoe UI',15,'bold')).pack(anchor='w',padx=20,pady=16)
+        ttk.Label(window,text='Durante una pausa, chiudi Sort Pulito di NewPod e libera l’antenna. Premi Avvia e passa un solo capo entro 10 secondi. Questa prova legge i dati ricevuti senza creare movimenti, accendere LED o stampare.',wraplength=710).pack(anchor='w',padx=20,pady=8)
+        output=tk.Text(window,height=14,wrap='word');output.pack(fill='both',expand=True,padx=20,pady=10);output.configure(state='disabled')
+        controls=ttk.Frame(window);controls.pack(fill='x',padx=20,pady=12)
+        result_saved={}
+        def show(result):
+            if not window.winfo_exists():return
+            result_saved.clear();result_saved.update(result)
+            start.configure(state='normal');output.configure(state='normal');output.delete('1.0','end')
+            message={'ricevuto':'Codice ricevuto dal lettore. Da confrontare con il capo prima di abilitare la lettura automatica.','formato_da_verificare':'Sono arrivati dati con un formato diverso da quello configurato. Salva il risultato per la verifica.','nessun_codice_completo':'Non è arrivato un codice completo: salva il risultato della prova.','annullata':'Prova interrotta.','errore':'La porta non è disponibile per la prova.'}.get(result.get('status'),'Risultato della prova')
+            output.insert('1.0',message+'\n\n'+json.dumps(result,ensure_ascii=False,indent=2));output.configure(state='disabled')
+            self.status.set(message)
+        def begin():
+            if self.busy:return
+            stop.clear();start.configure(state='disabled');self.status.set('In ascolto su '+profile.port+' per 10 secondi: passa un solo capo.')
+            def work():
+                try:return probe_reader(profile,cancelled=stop.is_set)
+                except ProbeError as error:return {'status':'errore','message':str(error),'port':profile.port}
+            self.run(work,show)
+        def save():
+            if not result_saved:return
+            target=filedialog.asksaveasfilename(parent=window,title='Salva prova lettore',defaultextension='.json',initialfile='prova-lettore-armadio.json',filetypes=[('Report JSON','*.json')])
+            if target:Path(target).write_text(json.dumps(result_saved,ensure_ascii=False,indent=2),encoding='utf-8')
+        def close():stop.set();window.destroy();self.probe_window=None
+        start=ttk.Button(controls,text='Avvia prova di lettura',command=begin);start.pack(side='left')
+        ttk.Button(controls,text='Interrompi',command=stop.set).pack(side='left',padx=8)
+        ttk.Button(controls,text='Salva risultato sul PC',command=save).pack(side='right')
+        window.protocol('WM_DELETE_WINDOW',close)
+
     def install(self):
         try:
             target=startup.install(self.kind);self.status.set('Installato: '+str(target)+' · avvio automatico al prossimo accesso Windows.')
@@ -279,11 +323,13 @@ class StationApp:
         self.root.after(3000,self.poll)
 
     def shutdown(self):
+        if self.probe_stop:self.probe_stop.set()
         self.stopped=True;self.pool.shutdown(wait=False,cancel_futures=True);self.root.destroy()
 
 
 def self_test(kind):
     config=backend_config()
+    if getattr(sys,'frozen',False) and not serial_available():raise RuntimeError('Serial transport missing from executable')
     with tempfile.TemporaryDirectory() as directory:
         queue=ReadOutbox(Path(directory)/'test.sqlite3');session=str(uuid.uuid4())
         event=queue.enqueue(session,kind,'0000000000000001')
@@ -294,7 +340,7 @@ def self_test(kind):
         if _crypt(_crypt(value,True),False)!=value:raise RuntimeError('Windows DPAPI test failed')
         diagnostic=collect_diagnostics()
         if diagnostic.get('read_only') is not True:raise RuntimeError('Windows diagnostic test failed')
-    return {'kind':kind,'backend_host':config['url'].split('//')[1],'queue':'ok','dpapi':'ok' if os.name=='nt' else 'windows-only','hardware_connected':False,'mode':'collaudo','gui_toolkit':'ok' if tk is not None else 'unavailable','tcl_version':tk.Tcl().eval('info patchlevel') if tk is not None else None,'diagnostics':'ok' if os.name=='nt' else 'windows-only'}
+    return {'kind':kind,'backend_host':config['url'].split('//')[1],'queue':'ok','dpapi':'ok' if os.name=='nt' else 'windows-only','hardware_connected':False,'mode':'collaudo','gui_toolkit':'ok' if tk is not None else 'unavailable','tcl_version':tk.Tcl().eval('info patchlevel') if tk is not None else None,'diagnostics':'ok' if os.name=='nt' else 'windows-only','serial_transport':'ok' if serial_available() else 'unavailable'}
 
 
 def main(kind):

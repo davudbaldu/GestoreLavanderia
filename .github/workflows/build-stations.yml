@@ -46,7 +46,7 @@ jobs:
             throw "Packaged self-test failed"
           }
           $stationResult = Get-Content -Raw $stationReport | ConvertFrom-Json
-          if ($stationResult.kind -ne '${{ matrix.kind }}' -or $stationResult.queue -ne 'ok' -or $stationResult.dpapi -ne 'ok' -or $stationResult.diagnostics -ne 'ok' -or $stationResult.hardware_connected -or $stationResult.gui_toolkit -ne 'ok') { throw "Unexpected packaged self-test result" }
+          if ($stationResult.kind -ne '${{ matrix.kind }}' -or $stationResult.queue -ne 'ok' -or $stationResult.dpapi -ne 'ok' -or $stationResult.diagnostics -ne 'ok' -or $stationResult.hardware_connected -or $stationResult.gui_toolkit -ne 'ok' -or $stationResult.serial_transport -ne 'ok') { throw "Unexpected packaged self-test result" }
           Copy-Item station/INSTALLAZIONE.txt dist/INSTALLAZIONE.txt
           Copy-Item $stationReport dist/self-test.json
       - uses: actions/upload-artifact@v4
