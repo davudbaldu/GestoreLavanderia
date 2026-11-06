@@ -45,3 +45,8 @@ sul PC. Non vengono letti i lavori di stampa, le password o i documenti,
 non vengono effettuate scansioni di rete e non avviene alcun invio automatico.
 Le connessioni elencate sono solo quelle già aperte dai programmi legacy
 riconosciuti. Un lettore Ethernet può richiedere ulteriori verifiche sul posto.
+La rilevazione versione 2 include anche i dispositivi FTDI e le porte PnP,
+le descrizioni del bus USB e i nomi/versioni dei moduli RFID già caricati dal
+programma di lettura. Lascia aperto quel programma durante la rilevazione.
+Non vengono aperte porte COM, caricate librerie del lettore o letti file di
+configurazione, righe di comando, contenuti dei processi o chiavi di licenza.
