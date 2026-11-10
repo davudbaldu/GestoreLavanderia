@@ -297,23 +297,14 @@ class StationApp:
         if previous is not None and previous!=counts['accepted']:self.placed.set(False)
         self.tree.delete(*self.tree.get_children())
         for read in data['reads']:self.tree.insert('', 'end', values=(read['tag'],' · '.join(filter(None,[read['snapshot'].get('client'),read['snapshot'].get('site')])) or 'Da identificare',read['snapshot'].get('name','—'),OUTCOMES.get(read['outcome'],read['outcome']),read['slot'] or '—'))
-        for child in self.grid.winfo_children():child.destroy()
         if self.kind=='pulito':
             last_read=data['reads'][0] if data['reads'] else None
-            active_slot=(last_read['slot'] if last_read and not self.outbox.pending() and
+            self.active_slot=(last_read['slot'] if last_read and not self.outbox.pending() and
                 last_read['outcome'] in ('accettata','ripetizione') and
                 (not self.last_scanned_tag or last_read['tag']==self.last_scanned_tag) else None)
-            for index in range(capacity):
-                slot=next((item for item in data['slots'] if item['slot']==index+1),None)
-                number=index+1
-                active=number==active_slot
-                label=tk.Label(self.grid,text=str(number).zfill(2)+(f" · {slot['count']}" if slot else ''),
-                    bg='#167647' if active else ('#b6f0d5' if slot else '#e4eaf2'),
-                    fg='white' if active else '#173b3a',
-                    font=('Segoe UI',10,'bold' if active else 'normal'),padx=3,pady=4)
-                # Three physical modules, each with five rows and six columns.
-                label.grid(row=(index%30)//6,column=(index//30)*6+(index%6),sticky='ew',padx=2,pady=2)
-            for column in range(((capacity+29)//30)*6):self.grid.columnconfigure(column,weight=1)
+            self.operator_context.set(data['client']['name']+' · '+data['client']['site']+' · '+{
+                'ospiti':'OSPITI','divise':'DIVISE OPERATORI','tutti':'OSPITI + DIVISE'
+            }.get(self.session['archive'],self.session['archive'].upper()))
         if self.kind=='pulito':
             pending=self.outbox.pending()
             if self.session['status']=='chiusa':
@@ -327,18 +318,42 @@ class StationApp:
             elif data['reads']:
                 last=data['reads'][0]
                 if last['slot'] and last['outcome'] in ('accettata','ripetizione'):
-                    self.instruction.set('CASELLA '+str(last['slot']))
+                    self.instruction.set('CASELLA '+str(last['slot']).zfill(2))
                     self.scan_detail.set(' · '.join(filter(None,[
                         last['snapshot'].get('name'),
                         last['snapshot'].get('article'),
                         last['snapshot'].get('department'),
                         'Piano '+str(last['snapshot']['floor']) if last['snapshot'].get('floor') else None])))
-                    self.slot_banner.configure(bg='#b6f0d5',fg='#173b3a')
+                    self.slot_banner.configure(bg='#35e0a8',fg='#083c30')
                 else:
-                    self.instruction.set('FERMA IL CAPO')
-                    self.scan_detail.set(OUTCOMES.get(last['outcome'],last['outcome'])+
-                        (' · '+last['snapshot'].get('client','')+' · '+last['snapshot'].get('site','') if last['outcome']=='cliente_diverso' else ''))
-                    self.slot_banner.configure(bg='#fbd5d5',fg='#832323')
+                    error_labels={
+                        'cliente_diverso':'STRUTTURA ERRATA',
+                        'archivio_diverso':'ARCHIVIO ERRATO',
+                        'tag_sconosciuto':'TAG SCONOSCIUTO',
+                        'tag_ambiguo':'TAG DA VERIFICARE',
+                        'identita_da_verificare':'DESTINATARIO DA VERIFICARE',
+                        'armadio_pieno':'ARMADIO PIENO',
+                    }
+                    self.instruction.set(error_labels.get(last['outcome'],'FERMA IL CAPO'))
+                    snap=last.get('snapshot') or {}
+                    if last['outcome'] in ('cliente_diverso','archivio_diverso'):
+                        archive_name={'ospiti':'OSPITI','divise':'DIVISE OPERATORI'}.get(
+                            snap.get('archive'),snap.get('archive','ARCHIVIO NON DISPONIBILE'))
+                        self.scan_detail.set(' · '.join(filter(None,[
+                            snap.get('name'),snap.get('client'),snap.get('site'),archive_name])))
+                    elif last['outcome']=='tag_sconosciuto':
+                        self.scan_detail.set('Il tag non è presente negli archivi importati. Proprietario non identificabile.')
+                    elif last['outcome']=='tag_ambiguo':
+                        self.scan_detail.set('Il tag risulta associato a più record: non assegnare una casella.')
+                    else:
+                        self.scan_detail.set(OUTCOMES.get(last['outcome'],last['outcome']))
+                    self.slot_banner.configure(bg='#ffd4d4',fg='#85292c')
+            else:
+                self.instruction.set('PRONTO ALLA LETTURA')
+                self.scan_detail.set('Passa il primo indumento davanti all’antenna RFID.')
+                self.slot_banner.configure(bg='#e4eaf2',fg='#213750')
+            self.render_operator_grid(data['slots'],capacity)
+            self.operator_note.set(f"Capi {counts['accepted']} · Caselle occupate {occupied}/{capacity} · Modalità collaudo")
         elif data['reads'] and not self.outbox.pending():
             last=data['reads'][0]
             self.instruction.set(OUTCOMES.get(last['outcome'],last['outcome']).upper())
