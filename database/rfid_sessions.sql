@@ -199,7 +199,7 @@ begin
 end$$;
 
 create function rf_private.close_session(p_session uuid,p_expected integer,p_note text default '') returns jsonb
- language plpgsql security definer set search_path='' as $
+ language plpgsql security definer set search_path='' as $rfclose$
 declare s public.rf_sessions;station public.rf_stations;n integer;problems integer;closed_time timestamptz;
 begin
  perform rf_private.authorize();select * into s from public.rf_sessions where id=p_session for update;if not found then raise exception 'Sessione non disponibile.';end if;
@@ -224,7 +224,7 @@ begin
   end if;
  end if;
  return jsonb_build_object('session',p_session,'status','chiusa','movements',(select count(*) from public.rf_movements where session_id=p_session),'labels',(select count(*) from public.rf_label_jobs where session_id=p_session));
-end$;
+end$rfclose$;
 
 create function rf_private.configure_slots(p_station uuid,p_slots integer) returns void language plpgsql security definer set search_path='' as $$begin
  perform rf_private.authorize();perform 1 from public.rf_stations where id=p_station and kind='pulito' for update;if not found then raise exception 'Armadio non disponibile.';end if;
