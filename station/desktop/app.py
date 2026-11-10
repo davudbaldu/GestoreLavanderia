@@ -71,10 +71,13 @@ class StationApp:
         style.configure('Title.TLabel',font=('Segoe UI',24,'bold'));style.configure('Status.TLabel',font=('Segoe UI',11))
         style.configure('TButton',font=('Segoe UI',10),padding=9);style.configure('TEntry',padding=7)
         self.status=tk.StringVar(value='Accedi al gestionale per collegare questa postazione.')
-        ttk.Label(root,text='GESTORE LAVANDERIA · '+kind.upper(),style='Title.TLabel').pack(anchor='w',padx=24,pady=(20,6))
-        ttk.Label(root,text='COLLAUDO SOFTWARE · antenne e stampanti non ancora collegate',foreground='#966416').pack(anchor='w',padx=24)
+        self.global_header=ttk.Label(root,text='GESTORE LAVANDERIA · '+kind.upper(),style='Title.TLabel')
+        self.global_header.pack(anchor='w',padx=24,pady=(20,6))
+        self.global_mode=ttk.Label(root,text='COLLAUDO SOFTWARE · antenne e stampanti non ancora collegate',foreground='#966416')
+        self.global_mode.pack(anchor='w',padx=24)
         self.body=ttk.Frame(root);self.body.pack(fill='both',expand=True,padx=24,pady=18)
-        ttk.Label(root,textvariable=self.status,style='Status.TLabel',wraplength=1120).pack(fill='x',padx=24,pady=(0,18))
+        self.global_status=ttk.Label(root,textvariable=self.status,style='Status.TLabel',wraplength=1120)
+        self.global_status.pack(fill='x',padx=24,pady=(0,18))
         self.show_login();self.root.protocol('WM_DELETE_WINDOW',self.shutdown)
         if self.store.path.exists():
             self.run(self.restore,self.show_station)
@@ -128,54 +131,109 @@ class StationApp:
     def show_station(self, data):
         stations,self.clients,self.open_sessions=data;self.stations=[s for s in stations if s['kind']==self.kind]
         if not self.stations or not self.clients:raise CloudError('Nessuna postazione o struttura configurata.')
-        self.clear_body();top=ttk.Frame(self.body);top.pack(fill='x')
+        self.clear_body()
+        if self.kind=='pulito':
+            self.global_header.pack_forget();self.global_mode.pack_forget();self.global_status.pack_forget()
+            self.operator_area=ttk.Frame(self.body);self.operator_area.pack(fill='both',expand=True)
+            self.admin_area=ttk.Frame(self.body)
+            panel=self.admin_area
+            header=ttk.Frame(self.operator_area);header.pack(fill='x',pady=(0,8))
+            title=ttk.Frame(header);title.pack(side='left',fill='x',expand=True)
+            ttk.Label(title,text='PULITO · ARMADIO',font=('Segoe UI',18,'bold')).pack(anchor='w')
+            self.operator_context=tk.StringVar(value='Seleziona cliente e archivio dal menu')
+            ttk.Label(title,textvariable=self.operator_context,font=('Segoe UI',13)).pack(anchor='w')
+            ttk.Button(header,text='☰  Menu',command=self.toggle_admin).pack(side='right',padx=4)
+            self.instruction=tk.StringVar(value='PRONTO ALLA LETTURA')
+            self.slot_banner=tk.Label(self.operator_area,textvariable=self.instruction,font=('Segoe UI',56,'bold'),
+                bg='#e4eaf2',fg='#213750',height=2,anchor='center')
+            self.slot_banner.pack(fill='x',pady=(5,4))
+            self.scan_detail=tk.StringVar(value='La casella apparirà qui dopo la lettura RFID confermata')
+            ttk.Label(self.operator_area,textvariable=self.scan_detail,font=('Segoe UI',15,'bold'),
+                wraplength=1100).pack(anchor='center',pady=(0,10))
+            self.grid=ttk.Frame(self.operator_area);self.grid.pack(fill='both',expand=True)
+            self.active_slot=None
+            self.operator_note=tk.StringVar(value='Modalità collaudo · nessun LED · nessun movimento fino alla chiusura')
+            ttk.Label(self.operator_area,textvariable=self.operator_note,font=('Segoe UI',10)).pack(anchor='w',pady=3)
+        else:
+            panel=self.body
+            self.instruction=tk.StringVar(value='In attesa di una lettura confermata dal server.')
+        if self.kind=='pulito':
+            ttk.Button(panel,text='← Torna al casellario',command=self.toggle_admin).pack(anchor='w',pady=(3,12))
+        top=ttk.Frame(panel);top.pack(fill='x')
         names=[s['name'] for s in self.stations]
         self.station_choice=ttk.Combobox(top,values=names,state='readonly',width=22);self.station_choice.pack(side='left',padx=(0,12))
         previous=self.preferences.data.get('station_id');self.station_choice.current(next((i for i,s in enumerate(self.stations) if s['id']==previous),0))
         self.client_choice=ttk.Combobox(top,values=[c['name']+' · '+c['site'] for c in self.clients],state='readonly',width=32);self.client_choice.current(0);self.client_choice.pack(side='left',padx=(0,12))
         self.archive_choice=ttk.Combobox(top,values=['Tutti i capi della struttura','Ospiti · capi personali','Operatori · divise'],state='readonly',width=26);self.archive_choice.current(0);self.archive_choice.pack(side='left')
         self.empty=tk.BooleanVar(value=False)
-        if self.kind=='pulito':ttk.Checkbutton(self.body,text='Confermo che tutte le caselle sono state svuotate prima di iniziare.',variable=self.empty).pack(anchor='w',pady=(16,2))
-        controls=ttk.Frame(self.body);controls.pack(fill='x',pady=12)
+        if self.kind=='pulito':ttk.Checkbutton(panel,text='Confermo che tutte le caselle sono state svuotate prima di iniziare.',variable=self.empty).pack(anchor='w',pady=(16,2))
+        controls=ttk.Frame(panel);controls.pack(fill='x',pady=12)
         ttk.Button(controls,text='Apri sessione di collaudo',command=self.start).pack(side='left')
         ttk.Button(controls,text='Riprendi sessione aperta',command=self.resume).pack(side='left',padx=10)
         ttk.Button(controls,text='Rileva dispositivi',command=self.diagnostics).pack(side='left',padx=10)
         if self.kind=='pulito':ttk.Button(controls,text='Prova lettore',command=self.hardware_probe).pack(side='left',padx=4)
         ttk.Button(controls,text='Installa su questo PC e avvia con Windows',command=self.install).pack(side='right')
         if self.kind=='pulito':
-            reader_controls=ttk.Frame(self.body);reader_controls.pack(fill='x',pady=7)
+            reader_controls=ttk.Frame(panel);reader_controls.pack(fill='x',pady=7)
             ttk.Button(reader_controls,text='Avvia lettura continua · senza LED',command=self.start_live_reader).pack(side='left')
             ttk.Button(reader_controls,text='Ferma lettura',command=self.stop_live_reader).pack(side='left',padx=12)
-            ttk.Label(reader_controls,text='COLLAUDO: non sostituisce ancora NewPod in produzione.').pack(side='left',padx=8)
+            ttk.Label(reader_controls,text='COLLAUDO: non sostituisce NewPod in produzione.').pack(side='left',padx=8)
         self.context=tk.StringVar(value='Scegli struttura e postazione. L’identità della postazione rimane memorizzata su questo PC.')
-        ttk.Label(self.body,textvariable=self.context,wraplength=1100).pack(anchor='w',pady=8)
-        scan=ttk.Frame(self.body);scan.pack(fill='x',pady=8)
+        ttk.Label(panel,textvariable=self.context,wraplength=1100).pack(anchor='w',pady=8)
+        scan=ttk.Frame(panel);scan.pack(fill='x',pady=8)
         ttk.Label(scan,text='Tag di prova (uno alla volta sul pulito; separati da spazi o righe sullo sporco)').pack(anchor='w')
         self.tag_input=ttk.Entry(scan);self.tag_input.pack(side='left',fill='x',expand=True,pady=8)
         ttk.Button(scan,text='Invia prova',command=self.capture).pack(side='right',padx=(12,0));self.tag_input.bind('<Return>',lambda _:self.capture())
-        self.instruction=tk.StringVar(value='In attesa di una lettura confermata dal server.')
-        if self.kind=='pulito':
-            self.slot_banner=tk.Label(self.body,textvariable=self.instruction,font=('Segoe UI',52,'bold'),bg='#e4eaf2',fg='#213750',height=2,anchor='center')
-            self.slot_banner.pack(fill='x',pady=(12,4))
-            self.scan_detail=tk.StringVar(value='In attesa di un capo. Le caselle appaiono solo dopo la conferma del server.')
-            ttk.Label(self.body,textvariable=self.scan_detail,font=('Segoe UI',14),wraplength=1080).pack(anchor='w',pady=(0,10))
-        else:
-            ttk.Label(self.body,textvariable=self.instruction,font=('Segoe UI',22,'bold'),wraplength=1080).pack(anchor='w',pady=10)
-        self.counts=tk.StringVar(value='');ttk.Label(self.body,textvariable=self.counts).pack(anchor='w',pady=4)
-        self.grid=ttk.Frame(self.body);self.grid.pack(fill='x',pady=8)
-        log=ttk.Frame(self.body);log.pack(fill='both',expand=True)
+        if self.kind!='pulito':
+            ttk.Label(panel,textvariable=self.instruction,font=('Segoe UI',22,'bold'),wraplength=1080).pack(anchor='w',pady=10)
+        self.counts=tk.StringVar(value='');ttk.Label(panel,textvariable=self.counts).pack(anchor='w',pady=4)
+        if self.kind!='pulito':
+            self.grid=ttk.Frame(panel);self.grid.pack(fill='x',pady=8)
+        log=ttk.Frame(panel);log.pack(fill='both',expand=True)
         self.tree=ttk.Treeview(log,columns=('tag','client','name','outcome','slot'),show='headings',height=7)
         for name,width in [('tag',200),('client',210),('name',220),('outcome',220),('slot',65)]:self.tree.heading(name,text={'tag':'Tag','client':'Struttura del capo','name':'Nominativo','outcome':'Esito','slot':'Casella'}[name]);self.tree.column(name,width=width,minwidth=65)
         scrollbar=ttk.Scrollbar(log,orient='vertical',command=self.tree.yview);self.tree.configure(yscrollcommand=scrollbar.set);scrollbar.pack(side='right',fill='y');self.tree.pack(fill='both',expand=True)
-        pages=ttk.Frame(self.body);pages.pack(fill='x',pady=8)
+        pages=ttk.Frame(panel);pages.pack(fill='x',pady=8)
         ttk.Button(pages,text='Più recenti',command=lambda:self.page(None)).pack(side='left');ttk.Button(pages,text='Precedenti',command=self.older).pack(side='left',padx=10)
         ttk.Button(pages,text='Etichette della sessione',command=self.show_labels).pack(side='right')
-        self.note=ttk.Entry(self.body);self.note.pack(fill='x',pady=4);self.note.insert(0,'')
-        ttk.Label(self.body,text='Nota di chiusura: obbligatoria se ci sono capi segnalati da separare.').pack(anchor='w')
+        self.note=ttk.Entry(panel);self.note.pack(fill='x',pady=4);self.note.insert(0,'')
+        ttk.Label(panel,text='Nota di chiusura: obbligatoria se ci sono capi segnalati da separare.').pack(anchor='w')
         self.placed=tk.BooleanVar(value=False)
-        if self.kind=='pulito':ttk.Checkbutton(self.body,text='Confermo che i capi accettati sono nelle caselle indicate.',variable=self.placed).pack(anchor='w',pady=6)
-        ttk.Button(self.body,text='Chiudi armadio e apri stampa etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
+        if self.kind=='pulito':ttk.Checkbutton(panel,text='Confermo che i capi accettati sono nelle caselle indicate.',variable=self.placed).pack(anchor='w',pady=6)
+        ttk.Button(panel,text='Chiudi armadio e apri stampa etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
+        if self.kind=='pulito':
+            ttk.Label(panel,textvariable=self.status,style='Status.TLabel',wraplength=1100).pack(anchor='w',pady=6)
+            self.render_operator_grid([],90)
         self.status.set('Collegato al gestionale. Modalità collaudo: nessuna lettura proviene ancora dall’antenna.')
+
+    def toggle_admin(self):
+        if self.kind!='pulito' or not hasattr(self,'operator_area'):return
+        if self.operator_area.winfo_manager():
+            self.operator_area.pack_forget()
+            self.admin_area.pack(fill='both',expand=True)
+        else:
+            self.admin_area.pack_forget()
+            self.operator_area.pack(fill='both',expand=True)
+
+    def render_operator_grid(self, slots, capacity):
+        if self.kind!='pulito':return
+        for child in self.grid.winfo_children():child.destroy()
+        by_slot={int(s['slot']):s for s in slots}
+        capacity=min(capacity or 90,90)
+        for index in range(capacity):
+            number=index+1
+            slot=by_slot.get(number)
+            active=self.active_slot==number
+            background='#29dfab' if active else ('#c6f3df' if slot else '#dfe7f0')
+            foreground='#073c30' if active else '#203b4f'
+            cell=tk.Label(self.grid,text=str(number).zfill(2)+(('\n'+str(slot['count'])+' capi') if slot else ''),
+                bg=background,fg=foreground,font=('Segoe UI',22,'bold'),
+                relief='solid',bd=1,justify='center')
+            row=(index%30)//5
+            col=(index//30)*5+((index%30)%5)
+            cell.grid(row=row,column=col,sticky='nsew',padx=3,pady=3)
+        for col in range(15):self.grid.columnconfigure(col,weight=1,uniform='caselle')
+        for row in range(6):self.grid.rowconfigure(row,weight=1,uniform='file')
 
     def station(self):return self.stations[self.station_choice.current()]
 
