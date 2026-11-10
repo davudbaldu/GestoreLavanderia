@@ -159,7 +159,10 @@ class StationApp:
             panel=self.body
             self.instruction=tk.StringVar(value='In attesa di una lettura confermata dal server.')
         if self.kind=='pulito':
-            ttk.Button(panel,text='← Torna al casellario',command=self.toggle_admin).pack(anchor='w',pady=(3,12))
+            menu_actions=ttk.Frame(panel);menu_actions.pack(fill='x',pady=(3,12))
+            ttk.Button(menu_actions,text='← Casellario',command=self.toggle_admin).pack(side='left',padx=(0,12))
+            ttk.Button(menu_actions,text='Chiudi armadio e apri etichette',command=self.close_session).pack(side='left',padx=(0,12))
+            ttk.Button(menu_actions,text='Rivedi etichette',command=self.show_labels).pack(side='left')
         top=ttk.Frame(panel);top.pack(fill='x')
         names=[s['name'] for s in self.stations]
         self.station_choice=ttk.Combobox(top,values=names,state='readonly',width=22);self.station_choice.pack(side='left',padx=(0,12))
