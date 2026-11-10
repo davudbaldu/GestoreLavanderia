@@ -1,0 +1,58 @@
+name: Compila Pulito (collaudo senza LED)
+
+on:
+  pull_request:
+    paths:
+      - "station/**"
+      - "tests/test_station_*.py"
+      - "docs/backend-config.js"
+      - ".github/workflows/build-pulito-collaudo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-pulito:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installa dipendenze Windows
+        run: python -m pip install -r station/build-requirements.txt
+      - name: Test lettore e interfaccia in collaudo
+        run: python -m unittest discover -s tests -p "test_station_*.py" -v
+      - name: Prepara configurazione pubblicabile nel pacchetto
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+          source = Path("docs/backend-config.js").read_text(encoding="utf-8")
+          config = json.loads(source[source.index("{"):source.rindex("}") + 1])
+          assert config["url"].startswith("https://") and config["publishableKey"].startswith("sb_publishable_")
+          Path("station-backend.json").write_text(json.dumps(config), encoding="utf-8")
+      - name: Compila Pulito.exe (senza comandi LED)
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Pulito --paths station --add-data "station-backend.json;." station/pulito.py
+      - name: Esegui self-test su Windows
+        shell: pwsh
+        run: |
+          .\dist\Pulito.exe --self-test --report pulito-selftest.json
+          $state = Get-Content pulito-selftest.json -Raw | ConvertFrom-Json
+          if ($state.queue -ne "ok" -or $state.serial_transport -ne "ok" -or $state.hardware_connected -ne $false) { throw "Il self-test del pacchetto Pulito non e valido" }
+      - name: Prepara pacchetto di collaudo
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path pacchetto | Out-Null
+          Copy-Item dist\Pulito.exe pacchetto\Pulito.exe
+          Copy-Item station\INSTALLAZIONE.txt pacchetto\INSTALLAZIONE.txt
+          Copy-Item station\TRACCIABILITA_PROCESSO.md pacchetto\TRACCIABILITA_PROCESSO.md
+          Copy-Item pulito-selftest.json pacchetto\pulito-selftest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pulito-collaudo-senza-LED
+          path: pacchetto/
+          retention-days: 7
