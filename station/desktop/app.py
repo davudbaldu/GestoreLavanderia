@@ -98,6 +98,7 @@ class StationApp:
                 done(value)
             except Exception as error:
                 self.status.set(str(error))
+                self.operator_error(str(error))
         self.root.after(80,check)
 
     def restore(self):
@@ -216,8 +217,11 @@ class StationApp:
             self.operator_area.pack(fill='both',expand=True)
 
     def render_operator_grid(self, slots, capacity):
+        """Paint only changed caselles; avoid flashing 90 widgets on every server refresh."""
         if self.kind!='pulito':return
-        for child in self.grid.winfo_children():child.destroy()
+        if not hasattr(self,'slot_widgets'):
+            self.slot_widgets={}
+            self.slot_styles={}
         by_slot={int(s['slot']):s for s in slots}
         capacity=min(capacity or 90,90)
         for index in range(capacity):
@@ -226,14 +230,31 @@ class StationApp:
             active=self.active_slot==number
             background='#29dfab' if active else ('#c6f3df' if slot else '#dfe7f0')
             foreground='#073c30' if active else '#203b4f'
-            cell=tk.Label(self.grid,text=str(number).zfill(2)+(('\n'+str(slot['count'])+' capi') if slot else ''),
-                bg=background,fg=foreground,font=('Segoe UI',22,'bold'),
-                relief='solid',bd=1,justify='center')
-            row=(index%30)//5
-            col=(index//30)*5+((index%30)%5)
-            cell.grid(row=row,column=col,sticky='nsew',padx=3,pady=3)
+            value=str(number).zfill(2)+(('\n'+str(slot['count'])+' capi') if slot else '')
+            style=(value,background,foreground)
+            cell=self.slot_widgets.get(number)
+            if cell is None:
+                cell=tk.Label(self.grid,text=value,bg=background,fg=foreground,font=('Segoe UI',22,'bold'),
+                    relief='solid',bd=1,justify='center')
+                row=(index%30)//5
+                col=(index//30)*5+((index%30)%5)
+                cell.grid(row=row,column=col,sticky='nsew',padx=3,pady=3)
+                self.slot_widgets[number]=cell
+            elif self.slot_styles.get(number)!=style:
+                cell.configure(text=value,bg=background,fg=foreground)
+            self.slot_styles[number]=style
         for col in range(15):self.grid.columnconfigure(col,weight=1,uniform='caselle')
         for row in range(6):self.grid.rowconfigure(row,weight=1,uniform='file')
+
+    def operator_error(self, message):
+        """Show a visible stop condition instead of silently leaving the last valid slot lit."""
+        if self.kind!='pulito' or not hasattr(self,'slot_banner'):return
+        self.active_slot=None
+        self.instruction.set('FERMA IL CAPO')
+        self.scan_detail.set('Problema di lettura o collegamento: '+str(message)[:190])
+        self.slot_banner.configure(bg='#ffd4d4',fg='#85292c')
+        if self.snapshot:
+            self.render_operator_grid(self.snapshot.get('slots') or [],self.session.get('slot_count') if self.session else 90)
 
     def station(self):return self.stations[self.station_choice.current()]
 
