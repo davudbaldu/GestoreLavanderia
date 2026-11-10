@@ -165,7 +165,7 @@ class StationApp:
         self.station_choice=ttk.Combobox(top,values=names,state='readonly',width=22);self.station_choice.pack(side='left',padx=(0,12))
         previous=self.preferences.data.get('station_id');self.station_choice.current(next((i for i,s in enumerate(self.stations) if s['id']==previous),0))
         self.client_choice=ttk.Combobox(top,values=[c['name']+' · '+c['site'] for c in self.clients],state='readonly',width=32);self.client_choice.current(0);self.client_choice.pack(side='left',padx=(0,12))
-        self.archive_choice=ttk.Combobox(top,values=['Tutti i capi della struttura','Ospiti · capi personali','Operatori · divise'],state='readonly',width=26);self.archive_choice.current(0);self.archive_choice.pack(side='left')
+        self.archive_choice=ttk.Combobox(top,values=['Tutti i capi della struttura','Ospiti · capi personali','Operatori · divise'],state='readonly',width=26);self.archive_choice.current(1 if self.kind=='pulito' else 0);self.archive_choice.pack(side='left')
         self.empty=tk.BooleanVar(value=False)
         if self.kind=='pulito':ttk.Checkbutton(panel,text='Confermo che tutte le caselle sono state svuotate prima di iniziare.',variable=self.empty).pack(anchor='w',pady=(16,2))
         controls=ttk.Frame(panel);controls.pack(fill='x',pady=12)
