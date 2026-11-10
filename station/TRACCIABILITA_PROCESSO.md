@@ -15,10 +15,10 @@ evento diverso.
   automatica è una funzione di **collaudo** non ancora autorizzata in produzione.
 - Il database dispone di rf_reads, rf_allocations, rf_sessions, rf_label_jobs,
   rf_print_attempts e rf_movements.
-- IMPORTANTISSIMO: la logica attuale registra `uscita_pulito` alla **chiusura
-  dell'armadio**, non alla reale partenza del trasporto. Per la tracciabilità
-  richiesta, quella semantica va corretta con una migrazione verificata, senza
-  riscrivere la storia o confondere ricomposizione con uscita.
+- La migrazione `ricomposizione_distinta_uscita` corregge l'evento di chiusura
+  armadio da `uscita_pulito` a `ricomposizione` nel database ospitato.
+  `uscita_pulito` resta riservato alla spedizione effettiva, ancora da collegare
+  ai DDT; nessuna riga storica viene riscritta.
 - La preview attuale delle etichette non garantisce l'avvenuta stampa sulla Zebra.
 - Le stazioni hardware_ready=false devono restare non abilitate alla produzione
   fino al collaudo.
@@ -80,3 +80,11 @@ stessa evidenza di `ogni capo è stato letto all'uscita`.
   etichette, effettiva stampa e reale uscita dal laboratorio.
 - Verifica su un PC di prova / finestra di manutenzione; mantenere NewPod
   disponibile e un backup degli originali.
+
+## Demo pubblica interattiva (solo dati fittizi)
+
+Aprire https://dggunlnrkpqescejogro.supabase.co/functions/v1/pulito-demo
+per usare un simulatore browser di 90 caselle, lettura di singoli capi o pila
+rapida, gestione ripetizioni e tag sconosciuti, chiusura, movimenti di
+ricomposizione ed etichette demo. La funzione è pubblica e NON accede al DB.
+Non è un software collegato al lettore; non usare per produzione.
