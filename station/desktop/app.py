@@ -325,6 +325,57 @@ class StationApp:
             self.status.set('Rilevazione completata. Nessun comando è stato inviato ai dispositivi.')
         self.run(collect_diagnostics,show)
 
+    def start_live_reader(self):
+        """Connect to configured standalone COM reader. Never sends LED or RFID commands."""
+        if self.kind!='pulito' or not self.session or self.session['status']!='aperta':
+            self.status.set('Apri prima una sessione di collaudo dell’armadio.');return
+        if self.live_reader and self.live_reader.running:
+            self.status.set('Lettura continua già attiva.');return
+        if self.outbox.pending():
+            self.status.set('Attendi la sincronizzazione delle letture già in coda.');return
+        from tkinter import filedialog
+        source=filedialog.askopenfilename(parent=self.root,title='Settings.config del lettore RFID',
+            filetypes=[('Impostazioni NewPod','*.config'),('Tutti i file','*.*')])
+        if not source:return
+        try:profile=profile_from_settings(source)
+        except (OSError,ProbeError) as error:self.status.set(str(error));return
+        self.live_reader=LiveSerialReader(profile,self.reader_events.put)
+        try:self.live_reader.start()
+        except ProbeError as error:self.status.set(str(error));return
+        self.status.set('Collegamento in corso su '+profile.port+' · sola lettura · LED esclusi.')
+
+    def stop_live_reader(self):
+        if self.live_reader:
+            self.live_reader.stop()
+            self.status.set('Lettura continua arrestata. La sessione resta aperta fino alla chiusura.')
+
+    def drain_reader_events(self):
+        received=False
+        for _ in range(100):
+            try:event=self.reader_events.get_nowait()
+            except Empty:break
+            if event[0]=='state':
+                if event[1]=='error':self.status.set(event[2])
+                elif event[1]=='active':self.status.set('Lettore attivo su '+event[2]+' · Nessun comando a COM5/LED.')
+                continue
+            if event[0]!='tag':continue
+            tag,port=event[1],event[2]
+            if not self.session or self.session['status']!='aperta' or self.kind!='pulito':
+                self.status.set('Lettura scartata: nessuna sessione aperta.')
+                continue
+            try:
+                self.outbox.enqueue(self.session['id'],'pulito',tag,
+                    metadata={'source':'tagsys_standalone_serial','port':port,'station_kind':'pulito'})
+            except (OSError,ValueError):
+                self.status.set('Impossibile salvare la lettura locale. Ferma l’operazione e verifica il PC.')
+                self.stop_live_reader()
+                continue
+            self.last_scanned_tag=tag;self.before=None;received=True
+            self.instruction.set('VERIFICA IN CORSO')
+            self.scan_detail.set('Tag '+tag+' · attesa della casella confermata.')
+            self.slot_banner.configure(bg='#fff0bd',fg='#6c4b13')
+        if received and not self.busy:self.sync()
+
     def hardware_probe(self):
         if self.busy:return
         if self.probe_window and self.probe_window.winfo_exists():self.probe_window.lift();return
@@ -372,11 +423,16 @@ class StationApp:
 
     def poll(self):
         if self.stopped:return
-        if self.api.token and not self.busy and self.session and self.session['status']=='aperta' and self.before is None:self.sync()
-        self.root.after(3000,self.poll)
+        self.drain_reader_events()
+        if self.api.token and not self.busy and self.session and self.session['status']=='aperta' and self.before is None:
+            if self.outbox.pending() or time.monotonic()>=self.next_refresh_at:
+                self.next_refresh_at=time.monotonic()+2.5
+                self.sync()
+        self.root.after(100,self.poll)
 
     def shutdown(self):
         if self.probe_stop:self.probe_stop.set()
+        if self.live_reader:self.live_reader.stop()
         self.stopped=True;self.pool.shutdown(wait=False,cancel_futures=True);self.root.destroy()
 
 
