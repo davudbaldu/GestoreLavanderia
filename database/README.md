@@ -93,7 +93,7 @@ accepted garment or movement in the same session.
 
 Dirty sessions record entries at accepted reads. Clean sessions reserve one slot
 per unambiguous source subject and keep departures pending until an atomic close.
-Closing creates departures and immutable bag-label payloads once; printer errors
+Closing creates cabinet recomposition movements and immutable bag-label payloads once; printer errors
 and reprints have a separate audit and never create a second departure. Physical
 printing is not asserted by generating a print job or opening its preview.
 
