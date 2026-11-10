@@ -40,7 +40,9 @@ jobs:
       - name: Esegui self-test su Windows
         shell: pwsh
         run: |
-          .\dist\Pulito.exe --self-test --report pulito-selftest.json
+          $process = Start-Process -FilePath (Resolve-Path "dist/Pulito.exe") -ArgumentList @("--self-test", "--report", "pulito-selftest.json") -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Il self-test Pulito.exe e fallito con codice $($process.ExitCode)" }
+          if (!(Test-Path "pulito-selftest.json")) { throw "Il self-test non ha prodotto il report" }
           $state = Get-Content pulito-selftest.json -Raw | ConvertFrom-Json
           if ($state.queue -ne "ok" -or $state.serial_transport -ne "ok" -or $state.hardware_connected -ne $false) { throw "Il self-test del pacchetto Pulito non e valido" }
       - name: Prepara pacchetto di collaudo
