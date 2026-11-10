@@ -62,3 +62,23 @@ del lettore, non crea movimenti e non aziona LED o stampanti. Le linee DTR e RTS
 sono impostate disattivate prima dell'apertura della porta. Un codice ricevuto
 deve essere confrontato con il capo prima di abilitare la lettura automatica.
 Usa "Salva risultato sul PC" per condividere il risultato della prova.
+
+
+PULITO VELOCE SENZA LED - COLLAUDO (NON PER PRODUZIONE)
+- Nessun USBPcap/Wireshark o driver LED necessario. Non utilizzare COM5.
+- Il lettore viene aperto solo premendo 'Avvia lettura continua' dopo avere
+  aperto una sessione di collaudo; scegliere il Settings.config corretto.
+- Verificare la COM effettiva del PC sostitutivo: non assumere che resti COM6.
+- Sort Pulito non puo occupare in contemporanea la stessa porta seriale.
+  Non tentare di forzare lo scollegamento durante la produzione.
+- Un codice letto e messo in coda: l'operatrice DEVE attendere il banner
+  'CASELLA N' (esito confermato dal server) prima di riporre il capo.
+- Quando appare 'VERIFICA IN CORSO' o 'FERMA IL CAPO', non riporlo in una
+  casella: controllare rete, identita e stato del gestionale.
+- Ferma lettura e Chiudi armadio. La chiusura apre l'anteprima delle etichette
+  delle sole caselle occupate. L'anteprima NON comprova stampa fisica.
+- Nella versione attuale l'evento server di chiusura e ancora
+  'uscita_pulito': va distinto dalla futura 'ricomposizione' e dalla vera
+  uscita/trasporto con una migrazione separata, prima di abilitare produzione.
+- Sul PC sostitutivo non attivare autostart finche l'intera procedura
+  non e stata validata, includendo backup e possibilita di tornare a NewPod.
