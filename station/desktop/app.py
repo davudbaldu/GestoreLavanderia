@@ -152,7 +152,7 @@ class StationApp:
             ttk.Label(self.operator_area,textvariable=self.scan_detail,font=('Segoe UI',15,'bold'),
                 wraplength=1100).pack(anchor='center',pady=(0,10))
             self.grid=ttk.Frame(self.operator_area);self.grid.pack(fill='both',expand=True)
-            self.active_slot=None
+            self.active_slot=None;self.slot_widgets={};self.slot_styles={}
             self.operator_note=tk.StringVar(value='Modalità collaudo · nessun LED · nessun movimento fino alla chiusura')
             ttk.Label(self.operator_area,textvariable=self.operator_note,font=('Segoe UI',10)).pack(anchor='w',pady=3)
         else:
@@ -290,6 +290,8 @@ class StationApp:
         self.tag_input.delete(0,'end');self.before=None
         if self.kind=='pulito':
             self.last_scanned_tag=tags[0].strip().upper()
+            self.active_slot=None
+            if self.snapshot:self.render_operator_grid(self.snapshot.get('slots') or [],self.session.get('slot_count') if self.session else 90)
             self.instruction.set('VERIFICA IN CORSO')
             self.scan_detail.set('Attendi l’assegnazione confermata. Non riporre ancora il capo.')
             self.slot_banner.configure(bg='#fff0bd',fg='#6c4b13')
@@ -459,7 +461,8 @@ class StationApp:
             try:event=self.reader_events.get_nowait()
             except Empty:break
             if event[0]=='state':
-                if event[1]=='error':self.status.set(event[2])
+                if event[1]=='error':
+                    self.status.set(event[2]);self.operator_error(event[2])
                 elif event[1]=='active':self.status.set('Lettore attivo su '+event[2]+' · Nessun comando a COM5/LED.')
                 continue
             if event[0]!='tag':continue
@@ -472,9 +475,13 @@ class StationApp:
                     metadata={'source':'tagsys_standalone_serial','port':port,'station_kind':'pulito'})
             except (OSError,ValueError):
                 self.status.set('Impossibile salvare la lettura locale. Ferma l’operazione e verifica il PC.')
+                self.operator_error('Impossibile salvare la lettura locale: controlla la postazione.')
                 self.stop_live_reader()
                 continue
             self.last_scanned_tag=tag;self.before=None;received=True
+            self.active_slot=None
+            if self.snapshot:
+                self.render_operator_grid(self.snapshot.get('slots') or [],self.session.get('slot_count') if self.session else 90)
             self.instruction.set('VERIFICA IN CORSO')
             self.scan_detail.set('Tag '+tag+' · attesa della casella confermata.')
             self.slot_banner.configure(bg='#fff0bd',fg='#6c4b13')
