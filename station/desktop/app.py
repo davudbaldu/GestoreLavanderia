@@ -9,6 +9,8 @@ import argparse
 import json
 import os
 import sys
+import time
+from queue import Queue, Empty
 import tempfile
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -26,6 +28,7 @@ from . import startup
 from .labels import render_labels
 from .diagnostics import collect as collect_diagnostics
 from .hardware import profile_from_settings, probe_reader, ProbeError, serial_available
+from .live_reader import LiveSerialReader
 from threading import Event
 import webbrowser
 from outbox import ReadOutbox
@@ -60,6 +63,7 @@ class StationApp:
         self.outbox=ReadOutbox(self.directory/'observations.sqlite3'); self.api=CloudAPI(backend_config())
         self.pool=ThreadPoolExecutor(max_workers=1); self.busy=False; self.stopped=False
         self.session=None; self.snapshot=None; self.before=None; self.remember=False; self.labels=[];self.probe_stop=None;self.probe_window=None
+        self.live_reader=None; self.reader_events=Queue(); self.last_scanned_tag=None; self.next_refresh_at=0.0
         self.root.title(('Sporco' if kind=='sporco' else 'Pulito')+' · Gestore Lavanderia · COLLAUDO')
         self.root.geometry('1180x860'); self.root.minsize(920,680); self.root.configure(bg='#f3f6fb')
         style=ttk.Style(); style.theme_use('clam')
@@ -74,7 +78,7 @@ class StationApp:
         self.show_login();self.root.protocol('WM_DELETE_WINDOW',self.shutdown)
         if self.store.path.exists():
             self.run(self.restore,self.show_station)
-        self.root.after(3000,self.poll)
+        self.root.after(100,self.poll)
 
     def run(self, work, done):
         if self.busy or self.stopped:return
@@ -138,6 +142,11 @@ class StationApp:
         ttk.Button(controls,text='Rileva dispositivi',command=self.diagnostics).pack(side='left',padx=10)
         if self.kind=='pulito':ttk.Button(controls,text='Prova lettore',command=self.hardware_probe).pack(side='left',padx=4)
         ttk.Button(controls,text='Installa su questo PC e avvia con Windows',command=self.install).pack(side='right')
+        if self.kind=='pulito':
+            reader_controls=ttk.Frame(self.body);reader_controls.pack(fill='x',pady=7)
+            ttk.Button(reader_controls,text='Avvia lettura continua · senza LED',command=self.start_live_reader).pack(side='left')
+            ttk.Button(reader_controls,text='Ferma lettura',command=self.stop_live_reader).pack(side='left',padx=12)
+            ttk.Label(reader_controls,text='COLLAUDO: non sostituisce ancora NewPod in produzione.').pack(side='left',padx=8)
         self.context=tk.StringVar(value='Scegli struttura e postazione. L’identità della postazione rimane memorizzata su questo PC.')
         ttk.Label(self.body,textvariable=self.context,wraplength=1100).pack(anchor='w',pady=8)
         scan=ttk.Frame(self.body);scan.pack(fill='x',pady=8)
@@ -145,7 +154,13 @@ class StationApp:
         self.tag_input=ttk.Entry(scan);self.tag_input.pack(side='left',fill='x',expand=True,pady=8)
         ttk.Button(scan,text='Invia prova',command=self.capture).pack(side='right',padx=(12,0));self.tag_input.bind('<Return>',lambda _:self.capture())
         self.instruction=tk.StringVar(value='In attesa di una lettura confermata dal server.')
-        ttk.Label(self.body,textvariable=self.instruction,font=('Segoe UI',22,'bold'),wraplength=1080).pack(anchor='w',pady=10)
+        if self.kind=='pulito':
+            self.slot_banner=tk.Label(self.body,textvariable=self.instruction,font=('Segoe UI',52,'bold'),bg='#e4eaf2',fg='#213750',height=2,anchor='center')
+            self.slot_banner.pack(fill='x',pady=(12,4))
+            self.scan_detail=tk.StringVar(value='In attesa di un capo. Le caselle appaiono solo dopo la conferma del server.')
+            ttk.Label(self.body,textvariable=self.scan_detail,font=('Segoe UI',14),wraplength=1080).pack(anchor='w',pady=(0,10))
+        else:
+            ttk.Label(self.body,textvariable=self.instruction,font=('Segoe UI',22,'bold'),wraplength=1080).pack(anchor='w',pady=10)
         self.counts=tk.StringVar(value='');ttk.Label(self.body,textvariable=self.counts).pack(anchor='w',pady=4)
         self.grid=ttk.Frame(self.body);self.grid.pack(fill='x',pady=8)
         log=ttk.Frame(self.body);log.pack(fill='both',expand=True)
@@ -159,7 +174,7 @@ class StationApp:
         ttk.Label(self.body,text='Nota di chiusura: obbligatoria se ci sono capi segnalati da separare.').pack(anchor='w')
         self.placed=tk.BooleanVar(value=False)
         if self.kind=='pulito':ttk.Checkbutton(self.body,text='Confermo che i capi accettati sono nelle caselle indicate.',variable=self.placed).pack(anchor='w',pady=6)
-        ttk.Button(self.body,text='Chiudi armadio e prepara etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
+        ttk.Button(self.body,text='Chiudi armadio e apri stampa etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
         self.status.set('Collegato al gestionale. Modalità collaudo: nessuna lettura proviene ancora dall’antenna.')
 
     def station(self):return self.stations[self.station_choice.current()]
