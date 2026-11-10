@@ -241,11 +241,21 @@ class StationApp:
         for read in data['reads']:self.tree.insert('', 'end', values=(read['tag'],' · '.join(filter(None,[read['snapshot'].get('client'),read['snapshot'].get('site')])) or 'Da identificare',read['snapshot'].get('name','—'),OUTCOMES.get(read['outcome'],read['outcome']),read['slot'] or '—'))
         for child in self.grid.winfo_children():child.destroy()
         if self.kind=='pulito':
+            last_read=data['reads'][0] if data['reads'] else None
+            active_slot=(last_read['slot'] if last_read and not self.outbox.pending() and
+                last_read['outcome'] in ('accettata','ripetizione') and
+                (not self.last_scanned_tag or last_read['tag']==self.last_scanned_tag) else None)
             for index in range(capacity):
-                slot=next((s for s in data['slots'] if s['slot']==index+1),None)
-                label=tk.Label(self.grid,text=str(index+1).zfill(2)+(f" · {slot['count']}" if slot else ''),bg='#b6f0d5' if slot else '#e4eaf2',fg='#173b3a',font=('Segoe UI',9),padx=4,pady=3)
-                label.grid(row=index//15,column=index%15,sticky='ew',padx=2,pady=2)
-            for column in range(15):self.grid.columnconfigure(column,weight=1)
+                slot=next((item for item in data['slots'] if item['slot']==index+1),None)
+                number=index+1
+                active=number==active_slot
+                label=tk.Label(self.grid,text=str(number).zfill(2)+(f" · {slot['count']}" if slot else ''),
+                    bg='#167647' if active else ('#b6f0d5' if slot else '#e4eaf2'),
+                    fg='white' if active else '#173b3a',
+                    font=('Segoe UI',10,'bold' if active else 'normal'),padx=3,pady=4)
+                # Three physical modules, each with five rows and six columns.
+                label.grid(row=(index%30)//6,column=(index//30)*6+(index%6),sticky='ew',padx=2,pady=2)
+            for column in range(((capacity+29)//30)*6):self.grid.columnconfigure(column,weight=1)
         if self.kind=='pulito':
             pending=self.outbox.pending()
             if self.session['status']=='chiusa':
