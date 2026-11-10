@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,7 +35,7 @@ class NewPodImportTests(unittest.TestCase):
             source.write_bytes(SAMPLE.replace(b"03/06/2026", b"05/06/2026"))
             third = module.stage_file(source, "ospiti", db)
             self.assertNotEqual(first["batch_id"], third["batch_id"])
-            with sqlite3.connect(db) as con:
+            with closing(sqlite3.connect(db)) as con:
                 self.assertEqual(con.execute("SELECT count(*) FROM source_records").fetchone()[0], 4)
                 original = json.loads(con.execute("SELECT raw_json FROM source_records WHERE batch_id=? ORDER BY source_row", (first["batch_id"],)).fetchone()[0])
                 self.assertEqual(original["DataUscita"], "03/06/2026")
@@ -45,7 +46,7 @@ class NewPodImportTests(unittest.TestCase):
             source.write_bytes(SAMPLE)
             module.stage_file(source, "ospiti", db)
             module.stage_file(source, "divise", db)
-            with sqlite3.connect(db) as con:
+            with closing(sqlite3.connect(db)) as con:
                 keys = {r[0] for r in con.execute("SELECT source_person_id FROM source_records")}
             self.assertIn("ospiti::10.001", keys)
             self.assertIn("divise::10.001", keys)

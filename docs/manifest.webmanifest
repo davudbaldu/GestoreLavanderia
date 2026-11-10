@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "Gestore Lavanderia",
+  "short_name": "Lavanderia",
+  "description": "Persone, capi e preparazione delle consegne della lavanderia.",
+  "lang": "it",
+  "start_url": "./riservato.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#142b48",
+  "prefer_related_applications": false,
+  "icons": [
+    {"src": "./icons/app-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "./icons/app-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
