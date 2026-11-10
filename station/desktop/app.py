@@ -208,7 +208,13 @@ class StationApp:
         raw=self.tag_input.get().strip();tags=[raw] if self.kind=='pulito' else raw.replace(',',' ').replace(';',' ').split()
         if not tags or not raw or len(tags)>500 or any(len(tag)>256 for tag in tags):self.status.set('Inserisci da 1 a 500 tag di prova.');return
         for tag in tags:self.outbox.enqueue(self.session['id'],self.kind,tag,metadata={'source':'collaudo_manuale','station_kind':self.kind})
-        self.tag_input.delete(0,'end');self.before=None;self.instruction.set('In attesa di conferma — non assegnare ancora il capo.' if self.kind=='pulito' else 'Letture salvate localmente; invio al gestionale…')
+        self.tag_input.delete(0,'end');self.before=None
+        if self.kind=='pulito':
+            self.last_scanned_tag=tags[0].strip().upper()
+            self.instruction.set('VERIFICA IN CORSO')
+            self.scan_detail.set('Attendi l’assegnazione confermata. Non riporre ancora il capo.')
+            self.slot_banner.configure(bg='#fff0bd',fg='#6c4b13')
+        else:self.instruction.set('Letture salvate localmente; invio al gestionale…')
         self.sync()
 
     def sync(self):
@@ -240,9 +246,34 @@ class StationApp:
                 label=tk.Label(self.grid,text=str(index+1).zfill(2)+(f" · {slot['count']}" if slot else ''),bg='#b6f0d5' if slot else '#e4eaf2',fg='#173b3a',font=('Segoe UI',9),padx=4,pady=3)
                 label.grid(row=index//15,column=index%15,sticky='ew',padx=2,pady=2)
             for column in range(15):self.grid.columnconfigure(column,weight=1)
-        if data['reads'] and not self.outbox.pending():
+        if self.kind=='pulito':
+            pending=self.outbox.pending()
+            if self.session['status']=='chiusa':
+                self.instruction.set('ARMADIO CHIUSO')
+                self.scan_detail.set(f"Movimenti: {counts['movements']} · Etichette pronte: {counts['labels']}.")
+                self.slot_banner.configure(bg='#e4eaf2',fg='#213750')
+            elif pending or (self.last_scanned_tag and data['reads'] and data['reads'][0]['tag']!=self.last_scanned_tag):
+                self.instruction.set('VERIFICA IN CORSO')
+                self.scan_detail.set('In attesa della conferma del server. Non riporre ancora il capo.')
+                self.slot_banner.configure(bg='#fff0bd',fg='#6c4b13')
+            elif data['reads']:
+                last=data['reads'][0]
+                if last['slot'] and last['outcome'] in ('accettata','ripetizione'):
+                    self.instruction.set('CASELLA '+str(last['slot']))
+                    self.scan_detail.set(' · '.join(filter(None,[
+                        last['snapshot'].get('name'),
+                        last['snapshot'].get('article'),
+                        last['snapshot'].get('department'),
+                        'Piano '+str(last['snapshot']['floor']) if last['snapshot'].get('floor') else None])))
+                    self.slot_banner.configure(bg='#b6f0d5',fg='#173b3a')
+                else:
+                    self.instruction.set('FERMA IL CAPO')
+                    self.scan_detail.set(OUTCOMES.get(last['outcome'],last['outcome'])+
+                        (' · '+last['snapshot'].get('client','')+' · '+last['snapshot'].get('site','') if last['outcome']=='cliente_diverso' else ''))
+                    self.slot_banner.configure(bg='#fbd5d5',fg='#832323')
+        elif data['reads'] and not self.outbox.pending():
             last=data['reads'][0]
-            self.instruction.set(('CASELLA '+str(last['slot'])+' · '+last['snapshot'].get('name','')) if self.kind=='pulito' and last['slot'] else OUTCOMES.get(last['outcome'],last['outcome']).upper()+(' · '+last['snapshot'].get('client','')+' · '+last['snapshot'].get('site','') if last['outcome']=='cliente_diverso' else ''))
+            self.instruction.set(OUTCOMES.get(last['outcome'],last['outcome']).upper())
         self.status.set(('Armadio pieno: prepara la chiusura.' if capacity and occupied==capacity else 'Collegato al gestionale · sessione '+self.session['status'])+' · COLLAUDO')
 
     def page(self,before):
@@ -253,14 +284,21 @@ class StationApp:
         if self.snapshot and self.snapshot['reads']:self.page(self.snapshot['reads'][-1]['seq'])
 
     def close_session(self):
+        if self.kind=='pulito' and self.live_reader and self.live_reader.running:
+            self.stop_live_reader()
+            self.drain_reader_events()
         if not self.session or not self.snapshot:return
-        if self.outbox.pending():self.status.set('Prima di chiudere, invia tutte le letture in attesa.');return
+        if self.outbox.pending():self.status.set('Letture ancora in verifica. Attendi la conferma e premi di nuovo Chiudi armadio.');return
         if self.kind=='pulito' and not self.placed.get():self.status.set('Conferma che tutti i capi accettati siano nelle caselle indicate.');return
         session=self.session['id'];expected=self.snapshot['counts']['accepted'];note=self.note.get()
         def work():
             self.api.rpc('rf_close_session',p_session=session,p_expected=expected,p_note=note)
             return self.api.snapshot(session)
-        self.run(work,self.display)
+        def done(data):
+            self.display(data)
+            if self.kind=='pulito' and data['session']['status']=='chiusa':
+                self.show_labels()  # Opens a print preview, never asserts a physical print.
+        self.run(work,done)
 
     def show_labels(self):
         if not self.session or self.session['status']!='chiusa':self.status.set('Le etichette vengono preparate solo dopo la chiusura.');return
