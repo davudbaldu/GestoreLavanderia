@@ -68,7 +68,7 @@ h1{font-size:26px;letter-spacing:-.8px;margin:0}h2{font-size:16px;letter-spacing
 .label h3{font-size:24px;margin:12px 0 2px}.label p{font-size:13px;margin-top:5px}.label footer{font-size:11px;color:#778b95;margin-top:14px}
 .print-only{display:none}
 @media(max-width:1150px){.layout{grid-template-columns:1fr}.modules{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-number{font-size:90px}}
-@media(max-width:640px){.page{padding:14px}.top{align-items:flex-start;flex-direction:column}.top-right{width:100%;justify-content:space-between}.section-heading{align-items:flex-start;flex-direction:column;gap:4px}h1{font-size:23px}.toolbar{grid-template-columns:repeat(2,1fr);gap:8px}.metric{padding:10px 13px}.metric b{font-size:25px}.panel-head{padding:14px}.panel-body{padding:13px}.hero{min-height:240px;padding:18px}.hero-number{font-size:61px;min-height:87px}.hero-person{font-size:18px}.modules{grid-template-columns:1fr}.module{padding:12px}.slot-grid{grid-template-columns:repeat(10,minmax(0,1fr))}.slot{height:37px}.preview-labels{grid-template-columns:1fr}.scan-row{flex-wrap:wrap}.scan-row input{flex-basis:100%}.scan-row button{width:100%}.actions{grid-template-columns:1fr}}
+@media(max-width:640px){.page{padding:14px}.top{align-items:flex-start;flex-direction:column}.top-right{width:100%;justify-content:space-between}.section-heading{align-items:flex-start;flex-direction:column;gap:4px}h1{font-size:23px}.toolbar{grid-template-columns:repeat(2,1fr);gap:8px}.metric{padding:10px 13px}.metric b{font-size:25px}.panel-head{padding:14px}.panel-body{padding:13px}.hero{min-height:240px;padding:18px}.hero-number{font-size:clamp(30px,9.7vw,44px);letter-spacing:-1.3px;min-height:75px}.hero-person{font-size:18px}.modules{grid-template-columns:1fr}.module{padding:12px}.slot-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.slot{height:37px}.preview-labels{grid-template-columns:1fr}.scan-row{flex-wrap:wrap}.scan-row input{flex-basis:100%}.scan-row button{width:100%}.actions{grid-template-columns:1fr}}
 @media print{body{background:white!important}.page,dialog button,.modal-top,.modal-footer{display:none!important}.modal{position:static!important;display:block!important;max-height:none!important;max-width:none!important;width:100%!important;box-shadow:none!important;border:0!important}.modal-inner{padding:0!important}.modal-content{max-height:none!important;overflow:visible!important;margin:0!important}.preview-labels{grid-template-columns:repeat(2,1fr);gap:7mm}.label{border:1px solid #666;border-radius:0;break-inside:avoid;min-height:50mm}.modal::backdrop{display:none}}
 </style>
 </head>
@@ -175,8 +175,8 @@ function render(){
   $("readCount").textContent=state.reads.length+" letture";
   $("scanBtn").disabled=state.closed||state.busy;$("randomBtn").disabled=state.closed||state.busy;$("pileBtn").disabled=state.closed||state.busy;
   $("repeatBtn").disabled=state.closed||state.busy||!state.lastTag;$("unknownBtn").disabled=state.closed||state.busy;
-  $("tagInput").disabled=state.closed||state.busy;$("closeBtn").disabled=state.closed||state.busy||state.accepted.size===0;
-  $("closeBtn").textContent=state.closed?"Armadio chiuso":"Chiudi armadio e stampa";
+  $("tagInput").disabled=state.closed||state.busy;$("closeBtn").disabled=state.busy||(!state.closed&&state.accepted.size===0);
+  $("closeBtn").textContent=state.closed?"Riapri etichette":"Chiudi armadio e stampa";
   $("sessionHint").textContent=state.closed?"Movimenti ricomposizione registrati nella sola simulazione. Nessun movimento di uscita creato.":"I movimenti di ricomposizione si creano alla chiusura; l’uscita effettiva sarà un evento separato.";
   const root=$("reads");root.textContent="";
   if(state.reads.length===0){const p=document.createElement("p");p.className="meta";p.textContent="In attesa del primo tag RFID simulato.";root.append(p);}
@@ -263,7 +263,7 @@ $("randomBtn").addEventListener("click",randomScan);
 $("pileBtn").addEventListener("click",pile);
 $("repeatBtn").addEventListener("click",function(){if(state.lastTag)scan(state.lastTag);});
 $("unknownBtn").addEventListener("click",function(){scan("FFFFFFFFFFFFFFFF");});
-$("closeBtn").addEventListener("click",closeSession);
+$("closeBtn").addEventListener("click",function(){if(state.closed)showLabels();else closeSession();});
 $("resetBtn").addEventListener("click",reset);
 $("dismissDialog").addEventListener("click",function(){$("labelDialog").close();});
 $("closeDialogBtn").addEventListener("click",function(){$("labelDialog").close();});
