@@ -35,7 +35,7 @@ create table public.rf_allocations(session_id uuid not null references public.rf
 create index rf_allocations_person on public.rf_allocations(person_source_id);
 create table public.rf_reservations(source_record_id bigint not null references public.np_source_records(id),mode text not null,session_id uuid not null references public.rf_sessions(id),primary key(source_record_id,mode));
 create index rf_reservations_session on public.rf_reservations(session_id);
-create table public.rf_movements(id uuid primary key default gen_random_uuid(),session_id uuid not null references public.rf_sessions(id),read_id uuid not null unique references public.rf_reads(id),source_record_id bigint not null references public.np_source_records(id),direction text not null check(direction in ('ingresso_sporco','uscita_pulito')),occurred_at timestamptz not null,recorded_at timestamptz not null default now());
+create table public.rf_movements(id uuid primary key default gen_random_uuid(),session_id uuid not null references public.rf_sessions(id),read_id uuid not null unique references public.rf_reads(id),source_record_id bigint not null references public.np_source_records(id),direction text not null check(direction in ('ingresso_sporco','ricomposizione','uscita_pulito')),occurred_at timestamptz not null,recorded_at timestamptz not null default now());
 create index rf_movements_session on public.rf_movements(session_id);
 create index rf_movements_garment on public.rf_movements(source_record_id,occurred_at desc);
 create table public.rf_label_jobs(id uuid primary key default gen_random_uuid(),session_id uuid not null references public.rf_sessions(id),slot integer not null,payload jsonb not null,created_at timestamptz not null default now(),unique(session_id,slot));
@@ -199,7 +199,7 @@ begin
 end$$;
 
 create function rf_private.close_session(p_session uuid,p_expected integer,p_note text default '') returns jsonb
- language plpgsql security definer set search_path='' as $$
+ language plpgsql security definer set search_path='' as $
 declare s public.rf_sessions;station public.rf_stations;n integer;problems integer;closed_time timestamptz;
 begin
  perform rf_private.authorize();select * into s from public.rf_sessions where id=p_session for update;if not found then raise exception 'Sessione non disponibile.';end if;
@@ -215,7 +215,7 @@ begin
   update public.rf_sessions set status='chiusa',closed_by=auth.uid(),closed_at=closed_time,closing_note=coalesce(p_note,'') where id=p_session;
   if station.kind='pulito' then
    insert into public.rf_movements(session_id,read_id,source_record_id,direction,occurred_at)
-    select p_session,id,source_record_id,'uscita_pulito',closed_time from public.rf_reads where session_id=p_session and outcome='accettata';
+    select p_session,id,source_record_id,'ricomposizione',closed_time from public.rf_reads where session_id=p_session and outcome='accettata';
    insert into public.rf_label_jobs(session_id,slot,payload)
     select p_session,a.slot,jsonb_build_object('mode',s.mode,'session',s.id,'station',station.name,'client_id',s.client_id,'client',c.name,'site',c.site,'archive',coalesce(a.snapshot->>'archive',s.archive),'closed_at',closed_time,'slot',a.slot,'subject',a.snapshot,'count',count(r.id),'garments',jsonb_agg(jsonb_build_object('tag',r.tag,'article',r.snapshot->>'article') order by r.seq))
     from public.rf_allocations a join public.rf_reads r on r.session_id=a.session_id and r.slot=a.slot and r.outcome='accettata'
@@ -224,7 +224,7 @@ begin
   end if;
  end if;
  return jsonb_build_object('session',p_session,'status','chiusa','movements',(select count(*) from public.rf_movements where session_id=p_session),'labels',(select count(*) from public.rf_label_jobs where session_id=p_session));
-end$$;
+end$;
 
 create function rf_private.configure_slots(p_station uuid,p_slots integer) returns void language plpgsql security definer set search_path='' as $$begin
  perform rf_private.authorize();perform 1 from public.rf_stations where id=p_station and kind='pulito' for update;if not found then raise exception 'Armadio non disponibile.';end if;
