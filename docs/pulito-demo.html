@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light">
+<title>Pulito · Demo interattiva | Gestore Lavanderia</title>
+<style>
+:root{font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;color:#162a35;background:#f0f3f5;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible{outline:3px solid #66cabb;outline-offset:2px}
+.page{max-width:1680px;margin:0 auto;padding:25px 30px 40px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.brand{display:flex;gap:12px;align-items:center}.mark{width:47px;height:47px;border-radius:15px;background:#153f4b;color:white;display:grid;place-items:center;font-weight:900;font-size:21px;letter-spacing:-1px}
+.brand strong{font-size:19px;display:block;line-height:1.15}.brand small{color:#647884;font-weight:600;letter-spacing:1.8px;font-size:10px}.top-right{display:flex;gap:10px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;background:#fff;border:1px solid #d9e2e7;padding:8px 12px;color:#345463;font-weight:700;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#2cab8d}
+.demo-warning{background:#fff7e5;border:1px solid #efdda4;color:#805d19;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.35}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0}
+h1{font-size:26px;letter-spacing:-.8px;margin:0}h2{font-size:16px;letter-spacing:-.2px;margin:0}p{margin:0}
+.meta{font-size:13px;color:#70838d}
+.toolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.metric{background:white;border:1px solid #dee7eb;border-radius:15px;padding:14px 18px}
+.metric .m-label{color:#6c8190;font-size:12px;font-weight:650;letter-spacing:.2px}
+.metric b{font-size:29px;display:block;margin-top:2px;line-height:1.3;letter-spacing:-.5px}
+.metric:last-child b{font-size:18px;padding-top:8px;color:#0c8574}
+.layout{display:grid;grid-template-columns:minmax(350px,.88fr) minmax(550px,1.45fr);gap:18px;align-items:start}
+.panel{background:white;border:1px solid #dde6eb;border-radius:19px;box-shadow:0 4px 20px rgba(31,67,80,.045);overflow:hidden}
+.panel-head{padding:17px 19px;border-bottom:1px solid #e6edef;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.panel-body{padding:18px}
+.overline{font-weight:800;font-size:11px;letter-spacing:1.1px;text-transform:uppercase;color:#6f8a95}
+.hero{border-radius:18px;background:#173e48;min-height:280px;color:#fff;padding:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;transition:background .15s}
+.hero[data-mode=ok]{background:#006d61}.hero[data-mode=warn]{background:#9a6415}.hero[data-mode=bad]{background:#a3393c}.hero[data-mode=closed]{background:#34536a}
+.hero-label{font-size:13px;text-transform:uppercase;letter-spacing:2px;font-weight:750;opacity:.76}.hero-number{font-size:clamp(43px,5vw,92px);font-weight:900;line-height:1.18;letter-spacing:-3px;min-height:110px;display:grid;place-items:center}.hero-person{font-size:22px;font-weight:800}.hero-detail{font-size:14px;opacity:.87;margin-top:8px;max-width:100%;line-height:1.5}
+.scan-label{display:block;font-size:12px;font-weight:800;margin:18px 0 7px;color:#405d69}.scan-row{display:flex;gap:8px}
+.scan-row input{flex:1;min-width:0;border:1px solid #cfdae0;background:#f8fafb;border-radius:10px;padding:12px 13px;font-size:15px;font-family:Consolas,monospace;text-transform:uppercase}
+.primary{background:#0b7568;color:#fff;border:1px solid #0b7568;border-radius:10px;font-weight:780;padding:12px 17px}
+.secondary{background:white;color:#315463;border:1px solid #cfdae0;border-radius:10px;font-weight:750;padding:11px 13px}
+.danger{background:#fff3f2;color:#a33c3d;border:1px solid #f1cbc7;border-radius:10px;font-weight:750;padding:11px 14px}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.quick button{text-align:left;min-height:45px}
+.hint{font-size:12px;color:#7a8c98;line-height:1.5;margin-top:10px}
+.separator{height:1px;background:#e8eef1;margin:19px 0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.actions button{min-height:48px}
+.log{display:flex;flex-direction:column;gap:7px;max-height:250px;overflow:auto}
+.read{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #e3ebee;border-radius:10px;background:#fcfdfd}
+.read-main{font-size:13px;font-weight:750}.read-sub{font-size:11px;color:#87939a;margin-top:3px}.read-right{font-size:12px;font-weight:850;color:#0c7e70;white-space:nowrap}
+.read-right.bad{color:#bc4f44}.read-right.warn{color:#9b6e19}
+.boxes-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.legend{display:flex;align-items:center;gap:12px;font-size:11px;color:#758895}.square{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle;background:#e8eef0;border:1px solid #cddde2}.square.used{background:#c0eee4;border-color:#66c8b4}.square.active{background:#087c70;border-color:#087c70}
+.modules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.module{background:#f9fbfb;border:1px solid #e2ebee;border-radius:15px;padding:12px 10px 14px}
+.mod-head{display:flex;justify-content:space-between;align-items:center;padding:0 4px;margin-bottom:10px}
+.mod-head strong{font-size:12px}.mod-head span{font-size:10px;color:#81939c;font-weight:800}
+.slot-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.slot{min-width:0;height:36px;padding:0;border:1px solid #dbe5e8;background:white;border-radius:7px;color:#9caeb7;font-weight:750;font-size:12px;transition:.1s}
+.slot.used{border-color:#8fd9c7;background:#cbefe7;color:#096b60}
+.slot.active{background:#087c70;border-color:#087c70;color:white;box-shadow:0 0 0 3px rgba(14,145,124,.18);transform:scale(1.04)}
+.slot:hover{border-color:#07947e}.slot:disabled{opacity:1;cursor:default}
+.foot{padding:14px 18px;border-top:1px solid #e6edef;background:#fbfcfd;font-size:12px;color:#72848d}
+.modal{border:0;padding:0;max-width:min(880px,calc(100vw - 24px));width:100%;border-radius:20px;box-shadow:0 28px 100px #102a3b55}
+.modal::backdrop{background:#142c3d9b}.modal-inner{padding:25px}.modal-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.modal-top strong{font-size:23px}.modal-content{max-height:56vh;overflow:auto;margin:18px 0}
+.modal-footer{display:flex;justify-content:flex-end;gap:9px}
+.preview-labels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.label{border:1px dashed #819ba7;padding:17px 19px;border-radius:12px;background:white;break-inside:avoid;min-height:160px}
+.label small{font-size:10px;color:#6b7d85;font-weight:750;text-transform:uppercase;letter-spacing:1px}
+.label h3{font-size:24px;margin:12px 0 2px}.label p{font-size:13px;margin-top:5px}.label footer{font-size:11px;color:#778b95;margin-top:14px}
+.print-only{display:none}
+@media(max-width:1150px){.layout{grid-template-columns:1fr}.modules{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-number{font-size:90px}}
+@media(max-width:640px){.page{padding:14px}.top{align-items:flex-start;flex-direction:column}.top-right{width:100%;justify-content:space-between}.section-heading{align-items:flex-start;flex-direction:column;gap:4px}h1{font-size:23px}.toolbar{grid-template-columns:repeat(2,1fr);gap:8px}.metric{padding:10px 13px}.metric b{font-size:25px}.panel-head{padding:14px}.panel-body{padding:13px}.hero{min-height:240px;padding:18px}.hero-number{font-size:61px;min-height:87px}.hero-person{font-size:18px}.modules{grid-template-columns:1fr}.module{padding:12px}.slot-grid{grid-template-columns:repeat(10,minmax(0,1fr))}.slot{height:37px}.preview-labels{grid-template-columns:1fr}.scan-row{flex-wrap:wrap}.scan-row input{flex-basis:100%}.scan-row button{width:100%}.actions{grid-template-columns:1fr}}
+@media print{body{background:white!important}.page,dialog button,.modal-top,.modal-footer{display:none!important}.modal{position:static!important;display:block!important;max-height:none!important;max-width:none!important;width:100%!important;box-shadow:none!important;border:0!important}.modal-inner{padding:0!important}.modal-content{max-height:none!important;overflow:visible!important;margin:0!important}.preview-labels{grid-template-columns:repeat(2,1fr);gap:7mm}.label{border:1px solid #666;border-radius:0;break-inside:avoid;min-height:50mm}.modal::backdrop{display:none}}
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="top">
+    <div class="brand"><span class="mark">GL</span><div><strong>Gestore Lavanderia</strong><small>PULITO / ARMADIO 01</small></div></div>
+    <div class="top-right"><span class="chip"><span class="dot"></span><span id="sessionState">Sessione demo attiva</span></span><span class="chip">90 caselle</span></div>
+  </header>
+  <div class="demo-warning"><strong>DEMO INTERATTIVA · DATI FITTIZI</strong> — Simula RFID, assegnazioni, movimenti e stampa. Non legge antenne reali, non usa LED e non salva nulla nel database o nei sistemi NewPod.</div>
+  <div class="section-heading"><div><h1>Ricomposizione armadio</h1><p class="meta">Prototipo operatore · Inzago · anteprima del flusso senza LED</p></div><span class="meta" id="clock"></span></div>
+  <section class="toolbar" aria-label="Stato della sessione">
+    <div class="metric"><span class="m-label">Capi riconosciuti</span><b id="statItems">0</b></div>
+    <div class="metric"><span class="m-label">Caselle occupate</span><b id="statSlots">0 <span style="color:#acb9c0;font-size:15px">/ 90</span></b></div>
+    <div class="metric"><span class="m-label">Letture ripetute</span><b id="statRepeats">0</b></div>
+    <div class="metric"><span class="m-label">Movimento alla chiusura</span><b id="statMovement">Ricomposizione</b></div>
+  </section>
+  <div class="layout">
+    <section class="panel" aria-label="Lettura RFID">
+      <div class="panel-head"><h2>Schermata dell’operatrice</h2><span class="overline">Lettura continua</span></div>
+      <div class="panel-body">
+        <div id="hero" class="hero" data-mode="idle" aria-live="polite" aria-atomic="true">
+          <span class="hero-label" id="heroLabel">PRONTO ALLA LETTURA</span>
+          <div class="hero-number" id="heroNumber">—</div>
+          <p class="hero-person" id="heroPerson">Passa il primo indumento</p>
+          <p class="hero-detail" id="heroDetail">La casella apparirà automaticamente, senza tasto di conferma.</p>
+        </div>
+        <label class="scan-label" for="tagInput">SIMULATORE TAG RFID · PREMI INVIO PER LEGGERE</label>
+        <div class="scan-row"><input id="tagInput" maxlength="64" autocomplete="off" spellcheck="false" placeholder="E004000000000001"><button class="primary" id="scanBtn" type="button">Leggi capo</button></div>
+        <div class="quick">
+          <button class="secondary" id="randomBtn" type="button">↗ Passa un capo</button>
+          <button class="secondary" id="pileBtn" type="button">▤ Simula pila da 12</button>
+          <button class="secondary" id="repeatBtn" type="button">↻ Ripeti ultimo tag</button>
+          <button class="secondary" id="unknownBtn" type="button">! Tag sconosciuto</button>
+        </div>
+        <p class="hint">Prova a passare più capi della stessa persona: rimarranno nella stessa casella. Dopo ogni lettura valida, il numero resta evidenziato fino alla successiva.</p>
+        <div class="separator"></div>
+        <div class="actions"><button class="primary" id="closeBtn" type="button">Chiudi armadio e stampa</button><button class="secondary" id="resetBtn" type="button">Nuova sessione</button></div>
+        <p class="hint" id="sessionHint">I movimenti di <b>ricomposizione</b> vengono creati alla chiusura; l’uscita effettiva sarà un evento separato.</p>
+      </div>
+      <div class="panel-head"><h2>Ultime letture</h2><span class="meta" id="readCount">0 letture</span></div>
+      <div class="panel-body"><div id="reads" class="log"><p class="meta">In attesa del primo tag RFID simulato.</p></div></div>
+    </section>
+    <section class="panel" aria-label="Mappa delle 90 caselle">
+      <div class="panel-head"><h2>Armadio: mappa caselle</h2><span class="chip">3 moduli × 30</span></div>
+      <div class="panel-body">
+        <div class="boxes-title"><span class="meta">Le caselle utilizzate restano evidenziate.</span><div class="legend"><span><span class="square"></span>Libera</span><span><span class="square used"></span>Occupata</span><span><span class="square active"></span>Ultima</span></div></div>
+        <div id="modules" class="modules"></div>
+        <p class="hint">La disposizione è una rappresentazione di collaudo da confrontare con l’ordine fisico dei numeri presenti sul mobile.</p>
+      </div>
+      <div class="foot">Alla chiusura si prepara una sola etichetta per ogni casella occupata, indipendentemente dal numero di capi della persona. La stampa effettiva e il formato della stampante richiedono ancora il collaudo.</div>
+    </section>
+  </div>
+</main>
+<dialog id="labelDialog" class="modal" aria-labelledby="dialogTitle">
+  <div class="modal-inner">
+    <div class="modal-top"><div><div class="overline">ANTEPRIMA STAMPA · DATI FITTIZI</div><strong id="dialogTitle">Etichette armadio</strong></div><button class="secondary" id="dismissDialog" type="button" aria-label="Chiudi anteprima">✕</button></div>
+    <p class="hint" id="dialogSummary"></p>
+    <div class="modal-content"><div class="preview-labels" id="labelPreview"></div></div>
+    <div class="modal-footer"><button class="secondary" id="closeDialogBtn" type="button">Chiudi anteprima</button><button class="primary" id="printBtn" type="button">Stampa etichette</button></div>
+  </div>
+</dialog>
+<script>
+(function(){
+"use strict";
+const first=["Mario","Lucia","Carlo","Anna","Paolo","Elena","Gianni","Sara","Roberto","Franca","Giorgio","Rita","Alessandro","Giulia","Franco"];
+const last=["Rossi","Bianchi","Verdi","Russo","Ferrari","Gallo","Fontana","Moretti","Villa","Conti","Greco","Marino"];
+const articles=["Maglia","Pantalone","Felpa"];
+const people=Array.from({length:90},function(_,i){return {id:i,name:first[i%first.length]+" "+last[Math.floor(i/first.length)%last.length]+" (demo)",department:["Piano 1","Piano 2","Piano 3"][i%3]};});
+const garments=Array.from({length:270},function(_,i){return {tag:"E004"+(i+1).toString(16).toUpperCase().padStart(12,"0"),person:people[Math.floor(i/3)],article:articles[i%3]};});
+const tags=new Map(garments.map(function(g){return [g.tag,g];}));
+const $=function(id){return document.getElementById(id);};
+let state={closed:false,reads:[],accepted:new Map(),allocations:new Map(),lastTag:null,lastSlot:null,repeats:0,movements:[],busy:false};
+function fmt(n){return String(n).padStart(2,"0");}
+function setHero(mode,label,number,name,detail){
+  $("hero").dataset.mode=mode;$("heroLabel").textContent=label;$("heroNumber").textContent=number;
+  $("heroPerson").textContent=name;$("heroDetail").textContent=detail;
+}
+function renderGrid(){
+  const root=$("modules");root.textContent="";
+  for(let bank=0;bank<3;bank++){
+    const section=document.createElement("section");section.className="module";
+    const head=document.createElement("div");head.className="mod-head";const name=document.createElement("strong");name.textContent="MODULO "+String.fromCharCode(65+bank);
+    const count=document.createElement("span");count.textContent=fmt(bank*30+1)+"–"+fmt((bank+1)*30);head.append(name,count);section.append(head);
+    const grid=document.createElement("div");grid.className="slot-grid";
+    for(let s=bank*30+1;s<=(bank+1)*30;s++){
+      const button=document.createElement("button");button.className="slot";button.type="button";button.textContent=fmt(s);
+      const entry=Array.from(state.allocations.values()).find(function(v){return v.slot===s;});
+      if(entry){button.classList.add("used");button.title=entry.person.name+" · "+entry.count+" capi";button.setAttribute("aria-label","Casella "+s+", "+entry.person.name);}
+      else{button.title="Casella "+s+" libera";button.setAttribute("aria-label","Casella "+s+" libera");}
+      if(s===state.lastSlot)button.classList.add("active");
+      button.addEventListener("click",function(){if(entry)setHero("ok","CASELLA OCCUPATA","CASELLA "+fmt(s),entry.person.name,entry.count+" capi assegnati · "+entry.person.department);});
+      grid.append(button);
+    }
+    section.append(grid);root.append(section);
+  }
+}
+function render(){
+  $("statItems").textContent=String(state.accepted.size);
+  $("statSlots").innerHTML=String(state.allocations.size)+' <span style="color:#acb9c0;font-size:15px">/ 90</span>';
+  $("statRepeats").textContent=String(state.repeats);
+  $("statMovement").textContent=state.closed?String(state.movements.length)+" ricomposizioni":"Ricomposizione";
+  $("sessionState").textContent=state.closed?"Sessione demo chiusa":"Sessione demo attiva";
+  $("readCount").textContent=state.reads.length+" letture";
+  $("scanBtn").disabled=state.closed||state.busy;$("randomBtn").disabled=state.closed||state.busy;$("pileBtn").disabled=state.closed||state.busy;
+  $("repeatBtn").disabled=state.closed||state.busy||!state.lastTag;$("unknownBtn").disabled=state.closed||state.busy;
+  $("tagInput").disabled=state.closed||state.busy;$("closeBtn").disabled=state.closed||state.busy||state.accepted.size===0;
+  $("closeBtn").textContent=state.closed?"Armadio chiuso":"Chiudi armadio e stampa";
+  $("sessionHint").textContent=state.closed?"Movimenti ricomposizione registrati nella sola simulazione. Nessun movimento di uscita creato.":"I movimenti di ricomposizione si creano alla chiusura; l’uscita effettiva sarà un evento separato.";
+  const root=$("reads");root.textContent="";
+  if(state.reads.length===0){const p=document.createElement("p");p.className="meta";p.textContent="In attesa del primo tag RFID simulato.";root.append(p);}
+  state.reads.slice(0,8).forEach(function(r){
+    const line=document.createElement("div");line.className="read";
+    const left=document.createElement("div");const name=document.createElement("div");name.className="read-main";name.textContent=r.name;
+    const sub=document.createElement("div");sub.className="read-sub";sub.textContent=r.tag+" · "+r.time;left.append(name,sub);
+    const right=document.createElement("span");right.className="read-right"+(r.type==="error"?" bad":r.type==="repeat"?" warn":"");right.textContent=r.message;
+    line.append(left,right);root.append(line);
+  });
+  renderGrid();
+}
+function record(tag,name,message,type){state.reads.unshift({tag:tag,name:name,message:message,type:type,time:new Date().toLocaleTimeString("it-IT")});}
+function scan(raw){
+  if(state.closed)return;
+  const tag=String(raw||"").trim().toUpperCase();if(!tag)return;
+  state.lastTag=tag;const garment=tags.get(tag);
+  if(!garment){state.lastSlot=null;setHero("bad","CAPO DA SEPARARE","ATTENZIONE","Tag sconosciuto","Nessuna casella assegnata. Metti il capo da parte per la verifica.");
+    record(tag,"Tag non riconosciuto","NON TROVATO","error");render();return;}
+  const already=state.accepted.has(tag);
+  if(already)state.repeats++;
+  let allocation=state.allocations.get(garment.person.id);
+  if(!allocation&&!already){
+    if(state.allocations.size>=90){state.lastSlot=null;setHero("bad","ARMADIO PIENO","90 / 90","Nessuna casella disponibile","Chiudi l’armadio prima di proseguire.");record(tag,garment.person.name,"PIENO","error");render();return;}
+    const used=new Set(Array.from(state.allocations.values()).map(function(x){return x.slot;}));
+    let slot=1;while(used.has(slot))slot++;
+    allocation={slot:slot,person:garment.person,count:0};state.allocations.set(garment.person.id,allocation);
+  }
+  if(!allocation){state.lastSlot=null;setHero("bad","VERIFICA NECESSARIA","—","Assegnazione mancante","Non riporre il capo.");render();return;}
+  if(!already){state.accepted.set(tag,garment);allocation.count++;}
+  state.lastSlot=allocation.slot;
+  setHero("ok",already?"LETTURA GIÀ REGISTRATA":"DESTINAZIONE CONFERMATA","CASELLA "+fmt(allocation.slot),garment.person.name,
+    garment.article+" · "+garment.person.department+" · "+allocation.count+" capi in casella");
+  record(tag,garment.person.name+" · "+garment.article,already?"GIÀ LETTO":"CASELLA "+fmt(allocation.slot),already?"repeat":"ok");render();
+}
+function randomScan(){
+  const remaining=garments.filter(function(g){return !state.accepted.has(g.tag);});
+  if(!remaining.length){setHero("warn","FINE SIMULAZIONE","—","Nessun altro capo disponibile","Premi Nuova sessione per ricominciare.");return;}
+  scan(remaining[Math.floor(Math.random()*remaining.length)].tag);
+}
+function pile(){
+  if(state.closed||state.busy)return;
+  const available=garments.filter(function(g){return !state.accepted.has(g.tag);});
+  if(!available.length)return;
+  const selected=available.sort(function(){return Math.random()-.5;}).slice(0,12);
+  state.busy=true;render();let index=0;
+  function next(){if(index<selected.length){scan(selected[index].tag);index++;setTimeout(next,180);}else{state.busy=false;render();}}
+  next();
+}
+function labelElement(a){
+  const label=document.createElement("article");label.className="label";
+  const small=document.createElement("small");small.textContent="BUSTA CAPI · FACSIMILE DEMO";
+  const h=document.createElement("h3");h.textContent="CASELLA "+fmt(a.slot);
+  const name=document.createElement("p");name.style.fontWeight="800";name.style.fontSize="17px";name.textContent=a.person.name;
+  const p=document.createElement("p");p.textContent=a.person.department+" · "+a.count+" capi";
+  const foot=document.createElement("footer");foot.textContent="Armadio 01 · Ricomposizione · Non valido per la produzione";
+  label.append(small,h,name,p,foot);return label;
+}
+function showLabels(){
+  const container=$("labelPreview");container.textContent="";
+  const entries=Array.from(state.allocations.values()).sort(function(a,b){return a.slot-b.slot;});
+  entries.forEach(function(a){container.append(labelElement(a));});
+  $("dialogSummary").textContent=entries.length+" etichette per "+state.accepted.size+" capi · Solo anteprima. La stampa non registra uscite.";
+  if(!$("labelDialog").open)$("labelDialog").showModal();
+}
+function closeSession(){
+  if(state.closed||state.busy||!state.accepted.size)return;
+  if(!window.confirm("Chiudere l’armadio? Verranno creati "+state.accepted.size+" movimenti di RICOMPOSIZIONE nella sola demo e preparate "+state.allocations.size+" etichette."))return;
+  const when=new Date().toISOString();
+  state.movements=Array.from(state.accepted.values()).map(function(g){return {tag:g.tag,type:"ricomposizione",at:when,person:g.person.name,slot:state.allocations.get(g.person.id).slot};});
+  state.closed=true;state.lastSlot=null;
+  setHero("closed","SESSIONE TERMINATA",state.movements.length+" CAPI",state.allocations.size+" caselle pronte",
+    "Movimenti: RICOMPOSIZIONE · Uscita non ancora registrata");
+  render();showLabels();
+}
+function reset(){
+  if(!window.confirm("Avviare una nuova sessione dimostrativa? Le letture precedenti andranno perse."))return;
+  state={closed:false,reads:[],accepted:new Map(),allocations:new Map(),lastTag:null,lastSlot:null,repeats:0,movements:[],busy:false};
+  $("tagInput").value="";setHero("idle","PRONTO ALLA LETTURA","—","Passa il primo indumento","La casella apparirà automaticamente, senza tasto di conferma.");render();
+}
+$("scanBtn").addEventListener("click",function(){scan($("tagInput").value);$("tagInput").select();});
+$("tagInput").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();scan($("tagInput").value);$("tagInput").select();}});
+$("randomBtn").addEventListener("click",randomScan);
+$("pileBtn").addEventListener("click",pile);
+$("repeatBtn").addEventListener("click",function(){if(state.lastTag)scan(state.lastTag);});
+$("unknownBtn").addEventListener("click",function(){scan("FFFFFFFFFFFFFFFF");});
+$("closeBtn").addEventListener("click",closeSession);
+$("resetBtn").addEventListener("click",reset);
+$("dismissDialog").addEventListener("click",function(){$("labelDialog").close();});
+$("closeDialogBtn").addEventListener("click",function(){$("labelDialog").close();});
+$("printBtn").addEventListener("click",function(){window.print();});
+$("clock").textContent=new Intl.DateTimeFormat("it-IT",{dateStyle:"full",timeStyle:"short"}).format(new Date());
+render();
+})();
+</script>
+</body>
+</html>
