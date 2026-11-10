@@ -15,7 +15,7 @@ class FrameTests(unittest.TestCase):
     def test_fragmented_frames_and_separators(self):
         decoder = UIDFrameDecoder(PROFILE)
         self.assertEqual(decoder.feed(b"00000000"), [])
-        self.assertEqual(decoder.feed(b"12345678\\r\\nE00403502B1BB749"), ["0000000012345678", "E00403502B1BB749"])
+        self.assertEqual(decoder.feed(b"12345678\r\nE00403502B1BB749"), ["0000000012345678", "E00403502B1BB749"])
 
     def test_invalid_frame_is_rejected(self):
         with self.assertRaises(ProbeError):
@@ -25,7 +25,7 @@ class FrameTests(unittest.TestCase):
 class FakePort:
     def __init__(self):
         self.closed = False
-        self.reads = [b"E00403502B1BB749\\r\\nE00403502B1BB749"]
+        self.reads = [b"E00403502B1BB749\r\nE00403502B1BB749"]
         self.writes = []
         self.read_count = 0
 
