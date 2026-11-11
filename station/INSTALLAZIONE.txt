@@ -24,8 +24,9 @@ sono segnalati con il cliente effettivo e restano fuori dai movimenti e dal
 casellario. Tag sconosciuti o assegnati a più clienti richiedono verifica.
 
 Questa versione prova il collegamento al gestionale e le letture inserite
-manualmente. NON include ancora i driver delle antenne, delle centraline
-né delle stampantine. NON sostituisce il software di produzione esistente.
+manualmente. Pulito include un adattatore seriale StandAlone RX-only da
+collaudare sull'antenna reale. Nessun driver LED o invio diretto alle stampantine.
+NON sostituisce il software di produzione esistente.
 L'avvio della schermata avviene all'accesso dell'utente Windows, non prima
 della schermata di login. Il lavoro in produzione richiede il collaudo hardware
 e credenziali limitate alla postazione, da predisporre in una fase successiva.
@@ -75,10 +76,17 @@ PULITO VELOCE SENZA LED - COLLAUDO (NON PER PRODUZIONE)
   'CASELLA N' (esito confermato dal server) prima di riporre il capo.
 - Quando appare 'VERIFICA IN CORSO' o 'FERMA IL CAPO', non riporlo in una
   casella: controllare rete, identita e stato del gestionale.
-- Ferma lettura e Chiudi armadio. La chiusura apre l'anteprima delle etichette
-  delle sole caselle occupate. L'anteprima NON comprova stampa fisica.
-- Nella versione attuale l'evento server di chiusura e ancora
-  'uscita_pulito': va distinto dalla futura 'ricomposizione' e dalla vera
-  uscita/trasporto con una migrazione separata, prima di abilitare produzione.
+- Ferma lettura e Chiudi armadio. La chiusura prepara un batch ordinato di
+  una etichetta per casella occupata e apre l'anteprima HTML. Stampa diretta
+  Zebra non attiva; l'anteprima NON comprova stampa fisica.
+- Il codice include la migrazione ricomposizione_distinta_uscita.sql:
+  verificarne l'applicazione al backend prima della produzione. La chiusura
+  deve registrare 'ricomposizione'; l'uscita/trasporto resta distinta.
 - Sul PC sostitutivo non attivare autostart finche l'intera procedura
   non e stata validata, includendo backup e possibilita di tornare a NewPod.
+
+STATO E PROVE HARDWARE
+Non considerare l'antenna collegata solo perche il codice RX-only e presente.
+La COM aperta non prova la ricezione di un UID valido. Verificare sul posto.
+Per inventario rilevato, formati Zebra recuperati e piano di stampa separato
+da NewPod, leggere COLLAUDO_ANTENNA_ZEBRA.md nel pacchetto/repository.

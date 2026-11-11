@@ -70,25 +70,55 @@ h1{font-size:26px;letter-spacing:-.8px;margin:0}h2{font-size:16px;letter-spacing
 @media(max-width:1150px){.layout{grid-template-columns:1fr}.modules{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-number{font-size:90px}}
 @media(max-width:640px){.page{padding:14px}.top{align-items:flex-start;flex-direction:column}.top-right{width:100%;justify-content:space-between}.section-heading{align-items:flex-start;flex-direction:column;gap:4px}h1{font-size:23px}.toolbar{grid-template-columns:repeat(2,1fr);gap:8px}.metric{padding:10px 13px}.metric b{font-size:25px}.panel-head{padding:14px}.panel-body{padding:13px}.hero{min-height:240px;padding:18px}.hero-number{font-size:clamp(30px,9.7vw,44px);letter-spacing:-1.3px;min-height:75px}.hero-person{font-size:18px}.modules{grid-template-columns:1fr}.module{padding:12px}.slot-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.slot{height:37px}.preview-labels{grid-template-columns:1fr}.scan-row{flex-wrap:wrap}.scan-row input{flex-basis:100%}.scan-row button{width:100%}.actions{grid-template-columns:1fr}}
 @media print{body{background:white!important}.page,dialog button,.modal-top,.modal-footer{display:none!important}.modal{position:static!important;display:block!important;max-height:none!important;max-width:none!important;width:100%!important;box-shadow:none!important;border:0!important}.modal-inner{padding:0!important}.modal-content{max-height:none!important;overflow:visible!important;margin:0!important}.preview-labels{grid-template-columns:repeat(2,1fr);gap:7mm}.label{border:1px solid #666;border-radius:0;break-inside:avoid;min-height:50mm}.modal::backdrop{display:none}}
+/* Operator view: only context, guidance and the complete cabinet. */
+.page{padding:18px 24px}.layout{grid-template-columns:1fr}.top{margin-bottom:12px}
+.brand small{font-size:13px;letter-spacing:0}.hero{min-height:200px;padding:20px}
+.hero-number{font-size:clamp(44px,6vw,86px);min-height:100px;letter-spacing:-2px;white-space:pre-line}
+.hero[data-mode=bad]{background:#a61f2b}.hero[data-mode=bad] .hero-number{font-size:clamp(28px,4.2vw,60px);line-height:1.13;letter-spacing:-.5px}
+.hero-person{font-size:24px}.hero-detail{font-size:18px;opacity:1}.hero-label{opacity:1}
+.module{padding:6px;background:transparent;border:0}.mod-head{display:none}
+.slot-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.slot{height:clamp(40px,6.3vh,72px);font-size:24px}.demo-warning{margin-top:12px}
+.menu{margin:16px 0}.menu[hidden]{display:none}.menu-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.operator-map{margin-top:14px}.operator-map .panel-head,.operator-map .foot{display:none}
+@media(max-width:640px){.page{padding:10px}.top{flex-direction:row;align-items:center}.top-right{width:auto}.brand strong{font-size:17px}.brand small{font-size:11px}.mark{display:none}.hero{min-height:210px;padding:16px}.hero-person{font-size:20px}.hero-detail{font-size:16px}.modules{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.module{padding:1px}.slot-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}.slot{height:36px;font-size:13px;border-radius:4px}.operator-map .panel-body{padding:7px}.toolbar{grid-template-columns:repeat(2,1fr)}}
+@media print{.menu{display:none!important}}
 </style>
 </head>
 <body>
 <main class="page">
   <header class="top">
-    <div class="brand"><span class="mark">GL</span><div><strong>Gestore Lavanderia</strong><small>PULITO / ARMADIO 01</small></div></div>
-    <div class="top-right"><span class="chip"><span class="dot"></span><span id="sessionState">Sessione demo attiva</span></span><span class="chip">90 caselle</span></div>
+    <div class="brand"><span class="mark">GL</span><div><strong>PULITO · ARMADIO</strong><small>Cliente Emmaus (demo) · OSPITI</small></div></div>
+    <div class="top-right"><button class="secondary" id="menuBtn" type="button" aria-expanded="false" aria-controls="management">☰ Menu</button></div>
   </header>
-  <div class="demo-warning"><strong>DEMO INTERATTIVA · DATI FITTIZI</strong> — Simula RFID, assegnazioni, movimenti e stampa. Non legge antenne reali, non usa LED e non salva nulla nel database o nei sistemi NewPod.</div>
-  <div class="section-heading"><div><h1>Ricomposizione armadio</h1><p class="meta">Prototipo operatore · Inzago · anteprima del flusso senza LED</p></div><span class="meta" id="clock"></span></div>
+  <aside id="management" class="menu panel" hidden aria-label="Gestione e simulazione">
+  <div class="panel-body">
+  <div class="menu-heading"><h1>Menu di collaudo</h1><button class="secondary" id="backBtn" type="button">← Casellario</button></div>
+  <div class="actions"><button class="primary" id="closeBtn" type="button">Chiudi armadio e prepara etichette</button><button class="secondary" id="resetBtn" type="button">Nuova sessione</button></div>
+  <p class="hint" id="sessionHint">I movimenti di ricomposizione vengono creati alla chiusura.</p>
+  <div class="section-heading"><span id="sessionState">Sessione demo attiva</span><span class="meta" id="clock"></span></div>
   <section class="toolbar" aria-label="Stato della sessione">
     <div class="metric"><span class="m-label">Capi riconosciuti</span><b id="statItems">0</b></div>
     <div class="metric"><span class="m-label">Caselle occupate</span><b id="statSlots">0 <span style="color:#acb9c0;font-size:15px">/ 90</span></b></div>
     <div class="metric"><span class="m-label">Letture ripetute</span><b id="statRepeats">0</b></div>
     <div class="metric"><span class="m-label">Movimento alla chiusura</span><b id="statMovement">Ricomposizione</b></div>
   </section>
+  <label class="scan-label" for="tagInput">SIMULATORE RFID · PREMI INVIO</label>
+  <div class="scan-row"><input id="tagInput" maxlength="64" autocomplete="off" spellcheck="false" placeholder="E004000000000001"><button class="primary" id="scanBtn" type="button">Leggi capo</button></div>
+  <div class="quick">
+    <button class="secondary" id="randomBtn" type="button">Passa un capo</button>
+    <button class="secondary" id="pileBtn" type="button">Simula pila da 12</button>
+    <button class="secondary" id="repeatBtn" type="button">Ripeti ultimo tag</button>
+    <button class="danger" id="unknownBtn" type="button">Tag sconosciuto</button>
+    <button class="danger" id="wrongClientBtn" type="button">Tag di altro cliente</button>
+    <button class="danger" id="wrongArchiveBtn" type="button">Tag delle divise</button>
+  </div>
+  <p class="hint">Le simulazioni tornano al casellario. Per leggere un codice manuale, inseriscilo e premi Invio.</p>
+  <div class="section-heading"><h2>Ultime letture</h2><span class="meta" id="readCount">0 letture</span></div>
+  <div id="reads" class="log"></div>
+  </div></aside>
   <div class="layout">
     <section class="panel" aria-label="Lettura RFID">
-      <div class="panel-head"><h2>Schermata dell’operatrice</h2><span class="overline">Lettura continua</span></div>
       <div class="panel-body">
         <div id="hero" class="hero" data-mode="idle" aria-live="polite" aria-atomic="true">
           <span class="hero-label" id="heroLabel">PRONTO ALLA LETTURA</span>
@@ -96,23 +126,9 @@ h1{font-size:26px;letter-spacing:-.8px;margin:0}h2{font-size:16px;letter-spacing
           <p class="hero-person" id="heroPerson">Passa il primo indumento</p>
           <p class="hero-detail" id="heroDetail">La casella apparirà automaticamente, senza tasto di conferma.</p>
         </div>
-        <label class="scan-label" for="tagInput">SIMULATORE TAG RFID · PREMI INVIO PER LEGGERE</label>
-        <div class="scan-row"><input id="tagInput" maxlength="64" autocomplete="off" spellcheck="false" placeholder="E004000000000001"><button class="primary" id="scanBtn" type="button">Leggi capo</button></div>
-        <div class="quick">
-          <button class="secondary" id="randomBtn" type="button">↗ Passa un capo</button>
-          <button class="secondary" id="pileBtn" type="button">▤ Simula pila da 12</button>
-          <button class="secondary" id="repeatBtn" type="button">↻ Ripeti ultimo tag</button>
-          <button class="secondary" id="unknownBtn" type="button">! Tag sconosciuto</button>
-        </div>
-        <p class="hint">Prova a passare più capi della stessa persona: rimarranno nella stessa casella. Dopo ogni lettura valida, il numero resta evidenziato fino alla successiva.</p>
-        <div class="separator"></div>
-        <div class="actions"><button class="primary" id="closeBtn" type="button">Chiudi armadio e stampa</button><button class="secondary" id="resetBtn" type="button">Nuova sessione</button></div>
-        <p class="hint" id="sessionHint">I movimenti di <b>ricomposizione</b> vengono creati alla chiusura; l’uscita effettiva sarà un evento separato.</p>
       </div>
-      <div class="panel-head"><h2>Ultime letture</h2><span class="meta" id="readCount">0 letture</span></div>
-      <div class="panel-body"><div id="reads" class="log"><p class="meta">In attesa del primo tag RFID simulato.</p></div></div>
     </section>
-    <section class="panel" aria-label="Mappa delle 90 caselle">
+    <section class="panel operator-map" aria-label="Mappa delle 90 caselle">
       <div class="panel-head"><h2>Armadio: mappa caselle</h2><span class="chip">3 moduli × 30</span></div>
       <div class="panel-body">
         <div class="boxes-title"><span class="meta">Le caselle utilizzate restano evidenziate.</span><div class="legend"><span><span class="square"></span>Libera</span><span><span class="square used"></span>Occupata</span><span><span class="square active"></span>Ultima</span></div></div>
@@ -122,13 +138,14 @@ h1{font-size:26px;letter-spacing:-.8px;margin:0}h2{font-size:16px;letter-spacing
       <div class="foot">Alla chiusura si prepara una sola etichetta per ogni casella occupata, indipendentemente dal numero di capi della persona. La stampa effettiva e il formato della stampante richiedono ancora il collaudo.</div>
     </section>
   </div>
+  <div class="demo-warning"><strong>DEMO · DATI FITTIZI</strong> — Antenna simulata. Etichette in anteprima, stampa diretta Zebra non attiva. Nessuna modifica a database o NewPod.</div>
 </main>
 <dialog id="labelDialog" class="modal" aria-labelledby="dialogTitle">
   <div class="modal-inner">
     <div class="modal-top"><div><div class="overline">ANTEPRIMA STAMPA · DATI FITTIZI</div><strong id="dialogTitle">Etichette armadio</strong></div><button class="secondary" id="dismissDialog" type="button" aria-label="Chiudi anteprima">✕</button></div>
     <p class="hint" id="dialogSummary"></p>
     <div class="modal-content"><div class="preview-labels" id="labelPreview"></div></div>
-    <div class="modal-footer"><button class="secondary" id="closeDialogBtn" type="button">Chiudi anteprima</button><button class="primary" id="printBtn" type="button">Stampa etichette</button></div>
+    <div class="modal-footer"><button class="secondary" id="closeDialogBtn" type="button">Chiudi anteprima</button><button class="primary" id="printBtn" type="button">Apri finestra di stampa del browser</button></div>
   </div>
 </dialog>
 <script>
@@ -140,9 +157,14 @@ const articles=["Maglia","Pantalone","Felpa"];
 const people=Array.from({length:90},function(_,i){return {id:i,name:first[i%first.length]+" "+last[Math.floor(i/first.length)%last.length]+" (demo)",department:["Piano 1","Piano 2","Piano 3"][i%3]};});
 const garments=Array.from({length:270},function(_,i){return {tag:"E004"+(i+1).toString(16).toUpperCase().padStart(12,"0"),person:people[Math.floor(i/3)],article:articles[i%3]};});
 const tags=new Map(garments.map(function(g){return [g.tag,g];}));
+const foreignTags=new Map([
+  ["E004FFFFFFFF0001",{name:"Ospite altra struttura (demo)",client:"Altra struttura (demo)",archive:"OSPITI"}],
+  ["E004FFFFFFFF0002",{name:"Operatore (demo)",client:"Emmaus (demo)",archive:"DIVISE OPERATORI"}]
+]);
 const $=function(id){return document.getElementById(id);};
 let state={closed:false,reads:[],accepted:new Map(),allocations:new Map(),lastTag:null,lastSlot:null,repeats:0,movements:[],busy:false};
 function fmt(n){return String(n).padStart(2,"0");}
+function setMenu(open){$("management").hidden=!open;$("menuBtn").setAttribute("aria-expanded",String(open));}
 function setHero(mode,label,number,name,detail){
   $("hero").dataset.mode=mode;$("heroLabel").textContent=label;$("heroNumber").textContent=number;
   $("heroPerson").textContent=name;$("heroDetail").textContent=detail;
@@ -160,7 +182,7 @@ function renderGrid(){
       if(entry){button.classList.add("used");button.title=entry.person.name+" · "+entry.count+" capi";button.setAttribute("aria-label","Casella "+s+", "+entry.person.name);}
       else{button.title="Casella "+s+" libera";button.setAttribute("aria-label","Casella "+s+" libera");}
       if(s===state.lastSlot)button.classList.add("active");
-      button.addEventListener("click",function(){if(entry)setHero("ok","CASELLA OCCUPATA","CASELLA "+fmt(s),entry.person.name,entry.count+" capi assegnati · "+entry.person.department);});
+      button.disabled=true;
       grid.append(button);
     }
     section.append(grid);root.append(section);
@@ -174,9 +196,10 @@ function render(){
   $("sessionState").textContent=state.closed?"Sessione demo chiusa":"Sessione demo attiva";
   $("readCount").textContent=state.reads.length+" letture";
   $("scanBtn").disabled=state.closed||state.busy;$("randomBtn").disabled=state.closed||state.busy;$("pileBtn").disabled=state.closed||state.busy;
-  $("repeatBtn").disabled=state.closed||state.busy||!state.lastTag;$("unknownBtn").disabled=state.closed||state.busy;
+  $("repeatBtn").disabled=state.closed||state.busy||!state.lastTag;
+  ["unknownBtn","wrongClientBtn","wrongArchiveBtn"].forEach(function(id){$(id).disabled=state.closed||state.busy;});
   $("tagInput").disabled=state.closed||state.busy;$("closeBtn").disabled=state.busy||(!state.closed&&state.accepted.size===0);
-  $("closeBtn").textContent=state.closed?"Riapri etichette":"Chiudi armadio e stampa";
+  $("closeBtn").textContent=state.closed?"Riapri anteprima etichette":"Chiudi armadio e prepara etichette";
   $("sessionHint").textContent=state.closed?"Movimenti ricomposizione registrati nella sola simulazione. Nessun movimento di uscita creato.":"I movimenti di ricomposizione si creano alla chiusura; l’uscita effettiva sarà un evento separato.";
   const root=$("reads");root.textContent="";
   if(state.reads.length===0){const p=document.createElement("p");p.className="meta";p.textContent="In attesa del primo tag RFID simulato.";root.append(p);}
@@ -193,8 +216,17 @@ function record(tag,name,message,type){state.reads.unshift({tag:tag,name:name,me
 function scan(raw){
   if(state.closed)return;
   const tag=String(raw||"").trim().toUpperCase();if(!tag)return;
+  setMenu(false);
   state.lastTag=tag;const garment=tags.get(tag);
-  if(!garment){state.lastSlot=null;setHero("bad","CAPO DA SEPARARE","ATTENZIONE","Tag sconosciuto","Nessuna casella assegnata. Metti il capo da parte per la verifica.");
+  const foreign=foreignTags.get(tag);
+  if(foreign){
+    const wrongClient=foreign.client!=="Emmaus (demo)";
+    const message=wrongClient?"CLIENTE ERRATO":"ARCHIVIO ERRATO";
+    state.lastSlot=null;setHero("bad","FERMA IL CAPO",message,foreign.name,
+      "Appartiene a: "+foreign.client+" · "+foreign.archive+". Nessuna casella assegnata; separa il capo.");
+    record(tag,foreign.name,message,"error");render();return;
+  }
+  if(!garment){state.lastSlot=null;setHero("bad","FERMA IL CAPO","TAG NON PRESENTE\nNEGLI ARCHIVI","Proprietario non identificabile","Assente dagli archivi disponibili. Nessuna casella assegnata; separa il capo per la verifica.");
     record(tag,"Tag non riconosciuto","NON TROVATO","error");render();return;}
   const already=state.accepted.has(tag);
   if(already)state.repeats++;
@@ -239,7 +271,7 @@ function showLabels(){
   const container=$("labelPreview");container.textContent="";
   const entries=Array.from(state.allocations.values()).sort(function(a,b){return a.slot-b.slot;});
   entries.forEach(function(a){container.append(labelElement(a));});
-  $("dialogSummary").textContent=entries.length+" etichette per "+state.accepted.size+" capi · Solo anteprima. La stampa non registra uscite.";
+  $("dialogSummary").textContent=entries.length+" etichette per "+entries.length+" caselle, in ordine numerico · Una copia per casella · "+state.accepted.size+" capi. Facsimile: layout Zebra da verificare. Nessuna stampa fisica confermata.";
   if(!$("labelDialog").open)$("labelDialog").showModal();
 }
 function closeSession(){
@@ -263,6 +295,10 @@ $("randomBtn").addEventListener("click",randomScan);
 $("pileBtn").addEventListener("click",pile);
 $("repeatBtn").addEventListener("click",function(){if(state.lastTag)scan(state.lastTag);});
 $("unknownBtn").addEventListener("click",function(){scan("FFFFFFFFFFFFFFFF");});
+$("wrongClientBtn").addEventListener("click",function(){scan("E004FFFFFFFF0001");});
+$("wrongArchiveBtn").addEventListener("click",function(){scan("E004FFFFFFFF0002");});
+$("menuBtn").addEventListener("click",function(){setMenu($("management").hidden);});
+$("backBtn").addEventListener("click",function(){setMenu(false);});
 $("closeBtn").addEventListener("click",function(){if(state.closed)showLabels();else closeSession();});
 $("resetBtn").addEventListener("click",reset);
 $("dismissDialog").addEventListener("click",function(){$("labelDialog").close();});

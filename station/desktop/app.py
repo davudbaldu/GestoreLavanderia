@@ -29,6 +29,7 @@ from .labels import render_labels
 from .diagnostics import collect as collect_diagnostics
 from .hardware import profile_from_settings, probe_reader, ProbeError, serial_available
 from .live_reader import LiveSerialReader
+from .operator_messages import blocked_read_message
 from threading import Event
 import webbrowser
 from outbox import ReadOutbox
@@ -73,7 +74,7 @@ class StationApp:
         self.status=tk.StringVar(value='Accedi al gestionale per collegare questa postazione.')
         self.global_header=ttk.Label(root,text='GESTORE LAVANDERIA · '+kind.upper(),style='Title.TLabel')
         self.global_header.pack(anchor='w',padx=24,pady=(20,6))
-        self.global_mode=ttk.Label(root,text='COLLAUDO SOFTWARE · antenne e stampanti non ancora collegate',foreground='#966416')
+        self.global_mode=ttk.Label(root,text='COLLAUDO · antenna da verificare sul PC · stampa diretta non attiva',foreground='#966416')
         self.global_mode.pack(anchor='w',padx=24)
         self.body=ttk.Frame(root);self.body.pack(fill='both',expand=True,padx=24,pady=18)
         self.global_status=ttk.Label(root,textvariable=self.status,style='Status.TLabel',wraplength=1120)
@@ -148,6 +149,8 @@ class StationApp:
             self.slot_banner=tk.Label(self.operator_area,textvariable=self.instruction,font=('Segoe UI',56,'bold'),
                 bg='#e4eaf2',fg='#213750',height=2,anchor='center')
             self.slot_banner.pack(fill='x',pady=(5,4))
+            self.slot_banner.bind('<Configure>',lambda event:self.fit_instruction(event.width))
+            self.instruction.trace_add('write',lambda *_:self.fit_instruction())
             self.scan_detail=tk.StringVar(value='La casella apparirà qui dopo la lettura RFID confermata')
             ttk.Label(self.operator_area,textvariable=self.scan_detail,font=('Segoe UI',15,'bold'),
                 wraplength=1100).pack(anchor='center',pady=(0,10))
@@ -161,7 +164,7 @@ class StationApp:
         if self.kind=='pulito':
             menu_actions=ttk.Frame(panel);menu_actions.pack(fill='x',pady=(3,12))
             ttk.Button(menu_actions,text='← Casellario',command=self.toggle_admin).pack(side='left',padx=(0,12))
-            ttk.Button(menu_actions,text='Chiudi armadio e apri etichette',command=self.close_session).pack(side='left',padx=(0,12))
+            ttk.Button(menu_actions,text='Chiudi armadio e prepara etichette',command=self.close_session).pack(side='left',padx=(0,12))
             ttk.Button(menu_actions,text='Rivedi etichette',command=self.show_labels).pack(side='left')
         top=ttk.Frame(panel);top.pack(fill='x')
         names=[s['name'] for s in self.stations]
@@ -204,7 +207,7 @@ class StationApp:
         ttk.Label(panel,text='Nota di chiusura: obbligatoria se ci sono capi segnalati da separare.').pack(anchor='w')
         self.placed=tk.BooleanVar(value=False)
         if self.kind=='pulito':ttk.Checkbutton(panel,text='Confermo che i capi accettati sono nelle caselle indicate.',variable=self.placed).pack(anchor='w',pady=6)
-        ttk.Button(panel,text='Chiudi armadio e apri stampa etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
+        ttk.Button(panel,text='Chiudi armadio e prepara etichette' if self.kind=='pulito' else 'Termina sessione sporco',command=self.close_session).pack(anchor='w',pady=6)
         if self.kind=='pulito':
             ttk.Label(panel,textvariable=self.status,style='Status.TLabel',wraplength=1100).pack(anchor='w',pady=6)
             self.render_operator_grid([],90)
@@ -233,7 +236,7 @@ class StationApp:
             active=self.active_slot==number
             background='#29dfab' if active else ('#c6f3df' if slot else '#dfe7f0')
             foreground='#073c30' if active else '#203b4f'
-            value=str(number).zfill(2)+(('\n'+str(slot['count'])+' capi') if slot else '')
+            value=str(number).zfill(2)
             style=(value,background,foreground)
             cell=self.slot_widgets.get(number)
             if cell is None:
@@ -258,6 +261,18 @@ class StationApp:
         self.slot_banner.configure(bg='#ffd4d4',fg='#85292c')
         if self.snapshot:
             self.render_operator_grid(self.snapshot.get('slots') or [],self.session.get('slot_count') if self.session else 90)
+
+    def fit_instruction(self, width=None):
+        """Keep explicit two-line errors inside the banner at smaller window sizes."""
+        from tkinter.font import Font
+        width=max(1,(width or self.slot_banner.winfo_width())-32)
+        size=56
+        font=Font(self.root,family='Segoe UI',size=size,weight='bold')
+        lines=self.instruction.get().splitlines() or ['']
+        while size>18 and max(font.measure(line) for line in lines)>width:
+            size-=2
+            font.configure(size=size)
+        self.slot_banner.configure(font=('Segoe UI',size,'bold'))
 
     def station(self):return self.stations[self.station_choice.current()]
 
@@ -352,27 +367,9 @@ class StationApp:
                         'Piano '+str(last['snapshot']['floor']) if last['snapshot'].get('floor') else None])))
                     self.slot_banner.configure(bg='#35e0a8',fg='#083c30')
                 else:
-                    error_labels={
-                        'cliente_diverso':'STRUTTURA ERRATA',
-                        'archivio_diverso':'ARCHIVIO ERRATO',
-                        'tag_sconosciuto':'TAG SCONOSCIUTO',
-                        'tag_ambiguo':'TAG DA VERIFICARE',
-                        'identita_da_verificare':'DESTINATARIO DA VERIFICARE',
-                        'armadio_pieno':'ARMADIO PIENO',
-                    }
-                    self.instruction.set(error_labels.get(last['outcome'],'FERMA IL CAPO'))
-                    snap=last.get('snapshot') or {}
-                    if last['outcome'] in ('cliente_diverso','archivio_diverso'):
-                        archive_name={'ospiti':'OSPITI','divise':'DIVISE OPERATORI'}.get(
-                            snap.get('archive'),snap.get('archive','ARCHIVIO NON DISPONIBILE'))
-                        self.scan_detail.set(' · '.join(filter(None,[
-                            snap.get('name'),snap.get('client'),snap.get('site'),archive_name])))
-                    elif last['outcome']=='tag_sconosciuto':
-                        self.scan_detail.set('Il tag non è presente negli archivi importati. Proprietario non identificabile.')
-                    elif last['outcome']=='tag_ambiguo':
-                        self.scan_detail.set('Il tag risulta associato a più record: non assegnare una casella.')
-                    else:
-                        self.scan_detail.set(OUTCOMES.get(last['outcome'],last['outcome']))
+                    title,detail=blocked_read_message(last['outcome'],last.get('snapshot'))
+                    self.instruction.set(title)
+                    self.scan_detail.set(detail)
                     self.slot_banner.configure(bg='#ffd4d4',fg='#85292c')
             else:
                 self.instruction.set('PRONTO ALLA LETTURA')

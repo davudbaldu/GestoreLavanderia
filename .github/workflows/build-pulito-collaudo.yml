@@ -52,6 +52,7 @@ jobs:
           Copy-Item dist\Pulito.exe pacchetto\Pulito.exe
           Copy-Item station\INSTALLAZIONE.txt pacchetto\INSTALLAZIONE.txt
           Copy-Item station\TRACCIABILITA_PROCESSO.md pacchetto\TRACCIABILITA_PROCESSO.md
+          Copy-Item station\COLLAUDO_ANTENNA_ZEBRA.md pacchetto\COLLAUDO_ANTENNA_ZEBRA.md
           Copy-Item pulito-selftest.json pacchetto\pulito-selftest.json
       - uses: actions/upload-artifact@v4
         with:
