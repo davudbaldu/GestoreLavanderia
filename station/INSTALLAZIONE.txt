@@ -86,6 +86,8 @@ PULITO VELOCE SENZA LED - COLLAUDO (NON PER PRODUZIONE)
   non e stata validata, includendo backup e possibilita di tornare a NewPod.
 
 STATO E PROVE HARDWARE
+La grafica di Pulito riprende la demo online anche per accesso, pulsanti e
+casellario. Il programma Windows resta nativo e non richiede un browser.
 Non considerare l'antenna collegata solo perche il codice RX-only e presente.
 La COM aperta non prova la ricezione di un UID valido. Verificare sul posto.
 Per inventario rilevato, formati Zebra recuperati e piano di stampa separato

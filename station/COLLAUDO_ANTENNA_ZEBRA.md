@@ -124,10 +124,13 @@ L'accettazione da parte dello spooler non va trattata come verifica fisica.
 
 ## Verifiche software di questa modifica
 
-- Suite Python: 37 test, 36 passati e 1 non applicabile a Windows; include test
+- Suite Python: 38 test, 37 passati e 1 non applicabile a Windows; include test
   reali Tk dei tre banner e delle dimensioni, più seriale simulata RX-only.
 - Ispezione visiva Windows con dati sintetici: avviso sconosciuto su due righe
   grandi, menu nascosto e griglia completa da 90 caselle.
+- La UI Windows riprende la grafica della demo: pannelli e caselle arrotondati,
+  sfondo chiaro, verde petrolio, testi bianchi nel banner e accesso su scheda.
+  L'altezza del banner cresce con il testo per evitare tagli negli avvisi.
 - Suite JavaScript: 22 test, inclusi tre test del codice effettivo della demo
   per errori, highlight, chiusura, quantità etichette e riapertura senza duplicati.
 - Controllo risorse pubbliche e `git diff --check`.

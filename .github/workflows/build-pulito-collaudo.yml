@@ -40,7 +40,7 @@ jobs:
       - name: Esegui self-test su Windows
         shell: pwsh
         run: |
-          $process = Start-Process -FilePath (Resolve-Path "dist/Pulito.exe") -ArgumentList @("--self-test", "--report", "pulito-selftest.json") -Wait -PassThru
+          $process = Start-Process -FilePath (Resolve-Path "dist/Pulito.exe") -ArgumentList @("--self-test", "--report", "pulito-selftest.json") -WindowStyle Hidden -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Il self-test Pulito.exe e fallito con codice $($process.ExitCode)" }
           if (!(Test-Path "pulito-selftest.json")) { throw "Il self-test non ha prodotto il report" }
           $state = Get-Content pulito-selftest.json -Raw | ConvertFrom-Json

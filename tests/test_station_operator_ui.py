@@ -50,8 +50,9 @@ class OperatorUITests(unittest.TestCase):
                 self.display_read(outcome, snapshot={'name': 'Operatore demo', 'client': 'Altra struttura demo', 'site': 'Altra sede', 'archive': 'divise'})
                 self.assertIn(text, self.app.instruction.get())
                 self.assertIsNone(self.app.active_slot)
-                self.assertEqual(self.app.slot_banner.cget('bg'), '#ffd4d4')
-                self.assertEqual(self.app.slot_widgets[1].cget('bg'), '#c6f3df')
+                self.assertEqual(self.app.slot_banner.cget('bg'), '#a61f2b')
+                self.assertEqual(self.app.slot_banner.cget('fg'), 'white')
+                self.assertEqual(self.app.slot_widgets[1].cget('bg'), '#cbefe7')
                 if outcome != 'tag_sconosciuto':
                     self.assertIn('Altra struttura demo', self.app.scan_detail.get())
                     self.assertIn('DIVISE OPERATORI', self.app.scan_detail.get())
@@ -64,6 +65,16 @@ class OperatorUITests(unittest.TestCase):
         self.assertGreaterEqual(abs(font.cget('size')), 30)
         for line in self.app.instruction.get().splitlines():
             self.assertLessEqual(font.measure(line), 808)
+
+    def test_multiline_error_and_all_slots_remain_inside_operator_view(self):
+        self.display_read('tag_sconosciuto')
+        self.root.deiconify()
+        self.root.update()
+        self.assertGreaterEqual(self.app.hero.content.winfo_height(),self.app.hero_stack.winfo_reqheight())
+        bottom=self.app.operator_area.winfo_rooty()+self.app.operator_area.winfo_height()
+        for widget in [self.app.slot_widgets[90],self.app.operator_warning]:
+            self.assertLessEqual(widget.winfo_rooty()+widget.winfo_height(),bottom)
+        self.assertFalse(self.app.admin_area.winfo_manager())
 
 
 if __name__ == '__main__':
