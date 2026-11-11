@@ -67,6 +67,13 @@ class HardwareProbeTests(unittest.TestCase):
         with self.assertRaises(ProbeError):
             self.parse(SETTINGS.replace('RTS="No"', 'RTS="Yes"'))
 
+    def test_serial_port_collision_with_led_is_rejected(self):
+        modified = SETTINGS.replace(
+            "<Settings>", '<Settings><EasySorter SorterType="L" SorterCOM="6" />'
+        )
+        with self.assertRaises(ProbeError):
+            self.parse(modified)
+
     def test_xml_entities_and_unbounded_packet_settings_are_refused(self):
         with self.assertRaises(ProbeError):
             self.parse('<!DOCTYPE Settings [<!ENTITY a "fixture">]>' + SETTINGS)

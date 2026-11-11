@@ -107,7 +107,13 @@ Windows, esegue il collaudo del pacchetto e conserva i download come artefatti.
 Le istruzioni sono in `station/INSTALLAZIONE.txt`.
 
 Questa prima versione è di collaudo: può collegarsi al backend autenticato,
-conservare osservazioni e provare i flussi; non contiene ancora i driver di
-antenne, centraline o stampanti. L'avvio automatico configurabile è all'accesso
+conservare osservazioni e provare i flussi. Pulito ha un adattatore seriale
+StandAlone RX-only predisposto, da collaudare sull'antenna reale. Non invia
+comandi LED né stampa direttamente su Zebra. L'avvio automatico configurabile è all'accesso
 Windows. Il funzionamento prima del login e il sorting offline completo
 richiedono componenti successivi.
+
+La demo [Pulito nel browser](docs/pulito-demo.html) usa dati fittizi e un menu
+nascosto. Gli errori hanno testo grande esplicito e cancellano la casella attiva.
+Per stato effettivo, formati Zebra recuperati e prove ancora necessarie, leggere
+[collaudo antenna e stampa](station/COLLAUDO_ANTENNA_ZEBRA.md).

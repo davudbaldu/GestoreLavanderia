@@ -57,7 +57,7 @@ class DesktopTests(unittest.TestCase):
             self.assertFalse(store.path.exists())
 
     def test_label_preview_escapes_imported_text_and_marks_test_data(self):
-        text=render_labels([{'id':'fixture-job','payload':{'mode':'collaudo','client':'Demo','site':'Sede','archive':'ospiti','slot':1,'subject':{'name':'<script>bad()</script>','department':'Piano'},'count':2,'garments':[{'article':'<img src=x>'}],'station':'Armadio test','closed_at':'2026-11-05'}}])
+        text=render_labels([{'id':'fixture-job','slot':1,'session_id':'fixture-session','payload':{'session':'fixture-session','mode':'collaudo','client':'Demo','site':'Sede','archive':'ospiti','slot':1,'subject':{'name':'<script>bad()</script>','department':'Piano'},'count':1,'garments':[{'article':'<img src=x>'}],'station':'Armadio test','closed_at':'2026-11-05'}}])
         self.assertNotIn('<script>',text);self.assertNotIn('<img src=x>',text)
         self.assertIn('&lt;script&gt;',text);self.assertIn('COLLAUDO',text)
         self.assertIn('default-src',text)

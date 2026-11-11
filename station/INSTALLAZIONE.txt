@@ -24,8 +24,9 @@ sono segnalati con il cliente effettivo e restano fuori dai movimenti e dal
 casellario. Tag sconosciuti o assegnati a più clienti richiedono verifica.
 
 Questa versione prova il collegamento al gestionale e le letture inserite
-manualmente. NON include ancora i driver delle antenne, delle centraline
-né delle stampantine. NON sostituisce il software di produzione esistente.
+manualmente. Pulito include un adattatore seriale StandAlone RX-only da
+collaudare sull'antenna reale. Nessun driver LED o invio diretto alle stampantine.
+NON sostituisce il software di produzione esistente.
 L'avvio della schermata avviene all'accesso dell'utente Windows, non prima
 della schermata di login. Il lavoro in produzione richiede il collaudo hardware
 e credenziali limitate alla postazione, da predisporre in una fase successiva.
@@ -62,3 +63,32 @@ del lettore, non crea movimenti e non aziona LED o stampanti. Le linee DTR e RTS
 sono impostate disattivate prima dell'apertura della porta. Un codice ricevuto
 deve essere confrontato con il capo prima di abilitare la lettura automatica.
 Usa "Salva risultato sul PC" per condividere il risultato della prova.
+
+
+PULITO VELOCE SENZA LED - COLLAUDO (NON PER PRODUZIONE)
+- Nessun USBPcap/Wireshark o driver LED necessario. Non utilizzare COM5.
+- Il lettore viene aperto solo premendo 'Avvia lettura continua' dopo avere
+  aperto una sessione di collaudo; scegliere il Settings.config corretto.
+- Verificare la COM effettiva del PC sostitutivo: non assumere che resti COM6.
+- Sort Pulito non puo occupare in contemporanea la stessa porta seriale.
+  Non tentare di forzare lo scollegamento durante la produzione.
+- Un codice letto e messo in coda: l'operatrice DEVE attendere il banner
+  'CASELLA N' (esito confermato dal server) prima di riporre il capo.
+- Quando appare 'VERIFICA IN CORSO' o 'FERMA IL CAPO', non riporlo in una
+  casella: controllare rete, identita e stato del gestionale.
+- Ferma lettura e Chiudi armadio. La chiusura prepara un batch ordinato di
+  una etichetta per casella occupata e apre l'anteprima HTML. Stampa diretta
+  Zebra non attiva; l'anteprima NON comprova stampa fisica.
+- Il codice include la migrazione ricomposizione_distinta_uscita.sql:
+  verificarne l'applicazione al backend prima della produzione. La chiusura
+  deve registrare 'ricomposizione'; l'uscita/trasporto resta distinta.
+- Sul PC sostitutivo non attivare autostart finche l'intera procedura
+  non e stata validata, includendo backup e possibilita di tornare a NewPod.
+
+STATO E PROVE HARDWARE
+La grafica di Pulito riprende la demo online anche per accesso, pulsanti e
+casellario. Il programma Windows resta nativo e non richiede un browser.
+Non considerare l'antenna collegata solo perche il codice RX-only e presente.
+La COM aperta non prova la ricezione di un UID valido. Verificare sul posto.
+Per inventario rilevato, formati Zebra recuperati e piano di stampa separato
+da NewPod, leggere COLLAUDO_ANTENNA_ZEBRA.md nel pacchetto/repository.

@@ -65,6 +65,8 @@ begin
  if (v->>'movements')::integer<>3 or (v->>'labels')::integer<>2 then raise exception 'Closure output wrong';end if;
  perform public.rf_close_session(cs,0);
  if (select count(*) from public.rf_movements where session_id=cs)<>3 or (select count(*) from public.rf_label_jobs where session_id=cs)<>2 then raise exception 'Closure retry duplicated movements/labels';end if;
+ if (select count(*) from public.rf_movements where session_id=cs and direction='ricomposizione')<>3 then raise exception 'Clean closure must record ricomposizione, never uscita';end if;
+ if exists (select 1 from public.rf_movements where session_id=cs and direction='uscita_pulito') then raise exception 'Shipment falsely recorded at cabinet closure';end if;
  if exists(select 1 from public.rf_reservations where session_id=cs) then raise exception 'Reservations leaked after closure';end if;
  if not exists(select 1 from public.rf_label_jobs where session_id=cs and slot=1 and (payload->>'count')::integer=2 and payload->'subject'->>'name'='DEMO UNO' and payload->>'mode'='collaudo') then raise exception 'Label payload not tied to closed bag';end if;
  select id into job from public.rf_label_jobs where session_id=cs limit 1;

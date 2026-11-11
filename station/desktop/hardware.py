@@ -67,6 +67,13 @@ def profile_from_settings(path):
         declared = main.get('RfidReaderCOMport', '').upper().strip()
         if declared and ('COM' + declared if declared.isdigit() else declared) != profile.port:
             raise ProbeError('Le due impostazioni della porta RFID non coincidono.')
+        # Never open a port configured as the cabinet LED controller.
+        sorter = root.find('EasySorter')
+        if sorter is not None:
+            sorter_port = sorter.get('SorterCOM', '').upper().strip()
+            led_com = 'COM' + sorter_port if sorter_port.isdigit() else sorter_port
+            if led_com == profile.port:
+                raise ProbeError('La porta del lettore coincide con quella dei LED: nessun accesso eseguito.')
         return profile
     except (ET.ParseError, KeyError, ValueError):
         raise ProbeError('Il file non contiene un profilo di lettura valido.') from None
